@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SpendiTrackWeb.Data;
 using SpendiTrackWeb.Models;
@@ -23,19 +18,36 @@ namespace SpendiTrackWeb.Controllers
         // GET: Expenses
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Expense.ToListAsync());
+            var expenses = await _context.Expense
+                .OrderByDescending(e => e.Date)
+                .ToListAsync();
+            return View(BuildIndexViewModel(expenses));
         }
 
-        //GET: Search
-        public async Task<IActionResult> ShowSearchForm()
+        // GET: Search
+        public IActionResult ShowSearchForm()
         {
             return View();
         }
 
-        //POST: Search
-        public async Task<IActionResult> ShowSearchResults(String SearchPhrase)
+        // POST: Search
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ShowSearchResults(string? searchPhrase)
         {
-            return View("Index", await _context.Expense.Where( e => e.Description.Contains(SearchPhrase)).ToListAsync());
+            var query = _context.Expense.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(searchPhrase))
+            {
+                query = query.Where(e => e.Description.Contains(searchPhrase));
+            }
+
+            var expenses = await query
+                .OrderByDescending(e => e.Date)
+                .ToListAsync();
+
+            var model = BuildIndexViewModel(expenses);
+            model.SearchPhrase = searchPhrase;
+            return View("Index", model);
         }
 
         // GET: Expenses/Details/5
@@ -60,12 +72,10 @@ namespace SpendiTrackWeb.Controllers
         [Authorize]
         public IActionResult Create()
         {
-            return View();
+            return View(new Expense { Date = DateTime.Today });
         }
 
         // POST: Expenses/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -98,8 +108,6 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // POST: Expenses/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -123,10 +131,8 @@ namespace SpendiTrackWeb.Controllers
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
@@ -171,6 +177,26 @@ namespace SpendiTrackWeb.Controllers
         private bool ExpenseExists(int id)
         {
             return _context.Expense.Any(e => e.Id == id);
+        }
+
+        private static ExpenseIndexViewModel BuildIndexViewModel(IReadOnlyList<Expense> expenses)
+        {
+            var now = DateTime.Now;
+            var monthStart = new DateTime(now.Year, now.Month, 1);
+
+            return new ExpenseIndexViewModel
+            {
+                Expenses = expenses,
+                TransactionCount = expenses.Count,
+                TotalAmount = expenses.Sum(e => e.Amount),
+                MonthlyTotal = expenses.Where(e => e.Date >= monthStart).Sum(e => e.Amount),
+                AverageAmount = expenses.Count > 0 ? expenses.Average(e => e.Amount) : 0,
+                LargestExpense = expenses.Count > 0 ? expenses.Max(e => e.Amount) : 0,
+                CategoryTotals = expenses
+                    .GroupBy(e => e.Category)
+                    .OrderByDescending(g => g.Sum(e => e.Amount))
+                    .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount))
+            };
         }
     }
 }

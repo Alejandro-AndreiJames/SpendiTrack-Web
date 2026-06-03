@@ -1,8 +1,72 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
+    var totalSpent = (decimal)(ViewBag.TotalSpent ?? 0m);
+    var monthlySpent = (decimal)(ViewBag.MonthlySpent ?? 0m);
+    var transactionCount = (int)(ViewBag.TransactionCount ?? 0);
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<section class="hero-section">
+    <h1>SpendiTrack</h1>
+    <p class="tagline">Your personal expenditure tracker and budget calculator. Record spending, see summaries, and plan what you can afford.</p>
+    <div class="action-links">
+        <a asp-controller="Expenses" asp-action="Index" class="btn btn-gold btn-lg">Open Tracker</a>
+        <a asp-controller="Expenses" asp-action="Create" class="btn btn-outline-gold btn-lg">Add Expense</a>
+    </div>
+</section>
+
+<div class="row g-3 mb-5">
+    <div class="col-md-4">
+        <div class="stat-card text-center">
+            <div class="stat-label">Lifetime spending</div>
+            <div class="stat-value">@totalSpent.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card text-center">
+            <div class="stat-label">This month</div>
+            <div class="stat-value">@monthlySpent.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card text-center">
+            <div class="stat-label">Recorded transactions</div>
+            <div class="stat-value">@transactionCount</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="calculator-panel">
+            <h3>Budget calculator</h3>
+            <p class="help-text mb-3">Estimate how much you can spend daily and weekly after savings and fixed bills.</p>
+            <form id="budget-calculator-form">
+                <div class="mb-3">
+                    <label class="form-label" for="monthly-income">Monthly income</label>
+                    <input type="number" class="form-control" id="monthly-income" min="0" step="0.01" placeholder="e.g. 3500" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="savings-percent">Savings goal (%)</label>
+                    <input type="number" class="form-control" id="savings-percent" min="0" max="100" step="1" value="10" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="fixed-costs">Fixed monthly costs (rent, bills)</label>
+                    <input type="number" class="form-control" id="fixed-costs" min="0" step="0.01" placeholder="e.g. 1200" />
+                </div>
+                <button type="submit" class="btn btn-gold w-100">Calculate budget</button>
+            </form>
+            <div id="budget-calculator-results" class="calculator-result" style="display: none;"></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="form-panel h-100">
+            <h2 class="h5 mb-3" style="color: var(--gold);">How it works</h2>
+            <ul class="feature-list mb-0">
+                <li><strong>Tracker</strong> — View all expenses with totals, monthly spend, averages, and category breakdown.</li>
+                <li><strong>Add / Edit</strong> — Sign in to create or update entries (ASP.NET Identity keeps your data secure).</li>
+                <li><strong>Search</strong> — Find expenses by description keyword.</li>
+                <li><strong>Calculator</strong> — Use the tool on this page to plan disposable income before you spend.</li>
+            </ul>
+        </div>
+    </div>
 </div>

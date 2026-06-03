@@ -1,53 +1,90 @@
-﻿@model IEnumerable<SpendiTrackWeb.Models.Expense>
+﻿@model SpendiTrackWeb.Models.ExpenseIndexViewModel
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Expense Tracker";
 }
 
-<h1>Index</h1>
+<div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div>
+        <h1>Expense Tracker</h1>
+        <p class="lead">
+            @if (!string.IsNullOrWhiteSpace(Model.SearchPhrase))
+            {
+                <text>Results for &ldquo;@Model.SearchPhrase&rdquo;</text>
+            }
+            else
+            {
+                <text>All your recorded spending in one place.</text>
+            }
+        </p>
+    </div>
+    <div class="action-links">
+        <a asp-action="Create" class="btn btn-gold">+ Add Expense</a>
+        <a asp-action="ShowSearchForm" class="btn btn-outline-gold">Search</a>
+    </div>
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Amount)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Date)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Category)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Amount)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Date)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Category)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Total spent</div>
+            <div class="stat-value">@Model.TotalAmount.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">This month</div>
+            <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Transactions</div>
+            <div class="stat-value">@Model.TransactionCount</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">Average</div>
+            <div class="stat-value">@Model.AverageAmount.ToString("C")</div>
+        </div>
+    </div>
+</div>
+
+@if (Model.CategoryTotals.Any())
+{
+    <div class="row mb-4">
+        <div class="col-lg-5">
+            <div class="form-panel">
+                <h2 class="h5 mb-3" style="color: var(--gold);">Spending by category</h2>
+                @{
+                    var maxCategory = Model.CategoryTotals.Values.DefaultIfEmpty(1).Max();
+                }
+                @foreach (var cat in Model.CategoryTotals)
+                {
+                    var pct = maxCategory > 0 ? (double)(cat.Value / maxCategory * 100) : 0;
+                    <div class="category-bar">
+                        <div class="category-name">
+                            <span>@cat.Key</span>
+                            <span class="amount-cell">@cat.Value.ToString("C")</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width: @pct.ToString("F0")%"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-lg-7">
+            @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
+        </div>
+    </div>
 }
-    </tbody>
-</table>
+else
+{
+    <div class="empty-state mb-4">
+        <h3>No expenses yet</h3>
+        <p>Start tracking by adding your first expense. Sign in if prompted when creating entries.</p>
+        <a asp-action="Create" class="btn btn-gold mt-2">Add your first expense</a>
+    </div>
+}
