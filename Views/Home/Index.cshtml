@@ -1,10 +1,8 @@
 ﻿@{
     ViewData["Title"] = "Home";
-    var totalSpent = (decimal)(ViewBag.TotalSpent ?? 0m);
-    var monthlySpent = (decimal)(ViewBag.MonthlySpent ?? 0m);
-    var transactionCount = (int)(ViewBag.TransactionCount ?? 0);
 }
 
+<!-- Hero section -->
 <section class="hero-section">
     <h1>SpendiTrack</h1>
     <p class="tagline">Your personal expenditure tracker and budget calculator. Record spending, see summaries, and plan what you can afford.</p>
@@ -14,27 +12,7 @@
     </div>
 </section>
 
-<div class="row g-3 mb-5">
-    <div class="col-md-4">
-        <div class="stat-card text-center">
-            <div class="stat-label">Lifetime spending</div>
-            <div class="stat-value">@totalSpent.ToString("C")</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stat-card text-center">
-            <div class="stat-label">This month</div>
-            <div class="stat-value">@monthlySpent.ToString("C")</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stat-card text-center">
-            <div class="stat-label">Recorded transactions</div>
-            <div class="stat-value">@transactionCount</div>
-        </div>
-    </div>
-</div>
-
+<!-- Sample budget calculator -->
 <div class="row g-4">
     <div class="col-lg-6">
         <div class="calculator-panel">

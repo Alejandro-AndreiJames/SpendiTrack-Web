@@ -45,7 +45,7 @@ body {
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
-/* Readable text selection (avoids dark-on-blue highlight) */
+/* Readable text selection */
 ::selection {
   background: rgba(212, 175, 55, 0.45);
   color: #0d0d0d;
