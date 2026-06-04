@@ -6,6 +6,7 @@ using SpendiTrackWeb.Models;
 
 namespace SpendiTrackWeb.Controllers
 {
+    [Authorize]
     public class ExpensesController : Controller
     {
         private readonly ApplicationDbContext _context;

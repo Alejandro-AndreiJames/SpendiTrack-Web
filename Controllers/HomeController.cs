@@ -15,16 +15,8 @@ namespace SpendiTrackWeb.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            var expenses = await _context.Expense.ToListAsync();
-            var now = DateTime.Now;
-            var monthStart = new DateTime(now.Year, now.Month, 1);
-
-            ViewBag.TotalSpent = expenses.Sum(e => e.Amount);
-            ViewBag.MonthlySpent = expenses.Where(e => e.Date >= monthStart).Sum(e => e.Amount);
-            ViewBag.TransactionCount = expenses.Count;
-
             return View();
         }
 
