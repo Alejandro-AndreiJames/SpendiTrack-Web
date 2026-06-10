@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SpendiTrackWeb.Data;
 using SpendiTrackWeb.Models;
+using SpendiTrackWeb.Services;
 
 namespace SpendiTrackWeb.Controllers
 {
@@ -10,10 +12,17 @@ namespace SpendiTrackWeb.Controllers
     public class ExpensesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly BudgetCalculator _budgetCalculator;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public ExpensesController(ApplicationDbContext context)
+        public ExpensesController(
+            ApplicationDbContext context,
+            BudgetCalculator budgetCalculator,
+            UserManager<IdentityUser> userManager)
         {
             _context = context;
+            _budgetCalculator = budgetCalculator;
+            _userManager = userManager;
         }
 
         // GET: Expenses
@@ -22,7 +31,60 @@ namespace SpendiTrackWeb.Controllers
             var expenses = await _context.Expense
                 .OrderByDescending(e => e.Date)
                 .ToListAsync();
-            return View(BuildIndexViewModel(expenses));
+
+            var model = BuildIndexViewModel(expenses);
+            await ApplyBudgetToModelAsync(model);
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveBudget(BudgetSetupViewModel input)
+        {
+            if (!ModelState.IsValid)
+            {
+                var expenses = await _context.Expense
+                    .OrderByDescending(e => e.Date)
+                    .ToListAsync();
+                var model = BuildIndexViewModel(expenses);
+                model.HasBudgetSetup = false;
+                model.MonthlyIncome = input.MonthlyIncome;
+                model.SavingsPercent = input.SavingsPercent;
+                model.FixedMonthlyCosts = input.FixedMonthlyCosts;
+                return View("Index", model);
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Challenge();
+            }
+
+            var existing = await _context.UserBudgets
+                .FirstOrDefaultAsync(b => b.UserId == user.Id);
+
+            if (existing == null)
+            {
+                _context.UserBudgets.Add(new UserBudget
+                {
+                    UserId = user.Id,
+                    MonthlyIncome = input.MonthlyIncome,
+                    SavingsPercent = input.SavingsPercent,
+                    FixedMonthlyCosts = input.FixedMonthlyCosts,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                existing.MonthlyIncome = input.MonthlyIncome;
+                existing.SavingsPercent = input.SavingsPercent;
+                existing.FixedMonthlyCosts = input.FixedMonthlyCosts;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Search
@@ -48,6 +110,7 @@ namespace SpendiTrackWeb.Controllers
 
             var model = BuildIndexViewModel(expenses);
             model.SearchPhrase = searchPhrase;
+            await ApplyBudgetToModelAsync(model);
             return View("Index", model);
         }
 
@@ -70,14 +133,12 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // GET: Expenses/Create
-        [Authorize]
         public IActionResult Create()
         {
             return View(new Expense { Date = DateTime.Today });
         }
 
         // POST: Expenses/Create
-        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Description,Amount,Date,Category")] Expense expense)
@@ -92,7 +153,6 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // GET: Expenses/Edit/5
-        [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -109,7 +169,6 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // POST: Expenses/Edit/5
-        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Description,Amount,Date,Category")] Expense expense)
@@ -141,7 +200,6 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // GET: Expenses/Delete/5
-        [Authorize]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -160,7 +218,6 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // POST: Expenses/Delete/5
-        [Authorize]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -178,6 +235,28 @@ namespace SpendiTrackWeb.Controllers
         private bool ExpenseExists(int id)
         {
             return _context.Expense.Any(e => e.Id == id);
+        }
+
+        private async Task ApplyBudgetToModelAsync(ExpenseIndexViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                model.HasBudgetSetup = false;
+                return;
+            }
+
+            var budget = await _context.UserBudgets
+                .FirstOrDefaultAsync(b => b.UserId == user.Id);
+
+            if (budget == null)
+            {
+                model.HasBudgetSetup = false;
+                return;
+            }
+
+            var result = _budgetCalculator.Calculate(budget, model.MonthlyTotal);
+            _budgetCalculator.ApplyToViewModel(result, model);
         }
 
         private static ExpenseIndexViewModel BuildIndexViewModel(IReadOnlyList<Expense> expenses)

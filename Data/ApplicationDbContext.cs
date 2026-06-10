@@ -11,5 +11,7 @@ namespace SpendiTrackWeb.Data
         {
         }
         public DbSet<SpendiTrackWeb.Models.Expense> Expense { get; set; } = default!;
+
+        public DbSet<UserBudget> UserBudgets { get; set; } = default!;
     }
 }
