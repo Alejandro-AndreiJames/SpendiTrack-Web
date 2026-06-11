@@ -24,6 +24,15 @@
   --bs-link-color: var(--gold-light);
   --bs-link-hover-color: var(--gold);
   --bs-border-color: var(--border);
+
+  /* Uniform vertical rhythm on Tracker page */
+  --tracker-stack-gap: 1rem;
+}
+
+@media (min-width: 992px) {
+  :root {
+    --tracker-stack-gap: 1.25rem;
+  }
 }
 
 html {
@@ -409,26 +418,39 @@ a:hover {
   }
 }
 
-/* Mobile spacing — stacked panels need breathing room */
+/* Tracker page — uniform section spacing */
+.tracker-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tracker-stack-gap);
+}
+
+.tracker-page .row.tracker-stats,
+.tracker-page .row.tracker-overview,
+.tracker-page .row.tracker-activity {
+  --bs-gutter-x: var(--tracker-stack-gap);
+  --bs-gutter-y: var(--tracker-stack-gap);
+  margin-bottom: 0 !important;
+}
+
+.page-header {
+  margin-bottom: var(--tracker-stack-gap);
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
 @media (max-width: 991.98px) {
-  .tracker-overview > .col-lg-6:not(:last-child) {
-    margin-bottom: 1.25rem;
-  }
-
-  .form-panel.mb-4,
-  .tracker-overview.mb-4,
-  .tracker-activity.mb-4,
-  .row.g-3.mb-4 {
-    margin-bottom: 1.5rem !important;
-  }
-
   .page-header {
-    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
   }
 
   .page-header .action-links {
     margin-top: 0.75rem;
     width: 100%;
+  }
+
+  .form-panel {
+    padding: 1.25rem;
   }
 
   .budget-profile__actions {
@@ -439,12 +461,6 @@ a:hover {
     flex: 1 1 auto;
     min-width: 0;
   }
-}
-
-.page-header {
-  margin-bottom: 1.75rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
 }
 
 .page-header h1 {
@@ -947,10 +963,6 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 @media (max-width: 991.98px) {
-  .tracker-activity > .col-lg-7:not(:last-child) {
-    margin-bottom: 1.25rem;
-  }
-
   .expense-card {
     flex-direction: column;
     align-items: stretch;
