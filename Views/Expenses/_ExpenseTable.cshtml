@@ -5,20 +5,20 @@
     {
         <article class="expense-card">
             <div class="expense-card__body">
-                <div class="expense-card__primary">
-                    <h3 class="expense-card__title">@item.Description</h3>
-                    <span class="expense-card__amount">@item.Amount.ToString("C")</span>
-                </div>
+                <h3 class="expense-card__title">@item.Description</h3>
                 <div class="expense-card__meta">
                     <span class="expense-card__date">@item.Date.ToString("MMM d, yyyy")</span>
                     <span class="expense-card__dot" aria-hidden="true">·</span>
                     <span class="expense-card__category">@item.Category</span>
                 </div>
             </div>
-            <div class="expense-card__actions">
-                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-gold">View</a>
-                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-gold">Edit</a>
-                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger-soft">Delete</a>
+            <div class="expense-card__aside">
+                <span class="expense-card__amount">@item.Amount.ToString("C")</span>
+                <div class="expense-card__actions">
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-gold">View</a>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-gold">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger-soft">Delete</a>
+                </div>
             </div>
         </article>
     }
