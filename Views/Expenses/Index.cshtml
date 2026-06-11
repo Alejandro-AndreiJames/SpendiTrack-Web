@@ -50,20 +50,20 @@
 
 
 
+<div class="tracker-page">
+
 @if (!ViewData.ModelState.IsValid)
 {
-    <div class="tracker-alert mb-4" role="alert">
+    <div class="tracker-alert" role="alert">
         <div asp-validation-summary="All"></div>
     </div>
 }
-
-
 
 @if (!Model.HasBudgetSetup)
 
 {
 
-    <div class="form-panel mb-4">
+    <div class="form-panel">
 
         <h2 class="h5 mb-2" style="color: var(--gold);">Set up your monthly budget</h2>
 
@@ -121,7 +121,7 @@
 
 
 
-<div class="row g-3 mb-4">
+<div class="row g-3 tracker-stats">
 
     @if (Model.HasBudgetSetup)
 
@@ -243,7 +243,7 @@
 
 {
 
-    <div class="row g-3 mb-4 tracker-overview">
+    <div class="row g-3 tracker-overview">
 
         <div class="col-lg-6">
             <div class="form-panel h-100 allocation-panel">
@@ -352,7 +352,7 @@
 
 
 
-    <div class="form-panel mb-4 category-budgets-panel" id="categoryBudgetsPanel">
+    <div class="form-panel category-budgets-panel" id="categoryBudgetsPanel">
 
         <div class="budget-profile__header">
             <div>
@@ -414,7 +414,7 @@
 
 @if (Model.HasBudgetSetup)
 {
-    <div class="row g-3 mb-4 tracker-activity">
+    <div class="row g-3 tracker-activity">
         <div class="col-lg-7">
             <div class="form-panel tracker-activity-panel">
                 <div class="tracker-section-header">
@@ -451,7 +451,7 @@
 }
 else if (Model.Expenses.Any())
 {
-    <div class="form-panel mb-4 tracker-activity-panel">
+    <div class="form-panel tracker-activity-panel">
         <div class="tracker-section-header">
             <div>
                 <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
@@ -466,12 +466,14 @@ else if (Model.Expenses.Any())
 }
 else
 {
-    <div class="empty-state mb-4">
+    <div class="empty-state">
         <h3>No expenses yet</h3>
         <p>Start tracking by adding your first expense.</p>
         <a asp-action="Create" class="btn btn-gold mt-2">Add your first expense</a>
     </div>
 }
+
+</div>
 
 @{
     var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
