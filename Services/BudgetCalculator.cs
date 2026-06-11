@@ -59,5 +59,33 @@ namespace SpendiTrackWeb.Services
             viewModel.SpendingLimit = result.SpendingLimit;
             viewModel.RemainingBudget = result.RemainingBudget;
         }
+
+        public decimal TotalAllocated(IEnumerable<CategoryBudget> budgets)
+            => budgets.Sum(b => b.AllocatedAmount);
+
+        public decimal Unallocated(decimal spendingLimit, decimal totalAllocated)
+            => spendingLimit - totalAllocated;
+
+        public List<CategoryBudgetSummary> BuildCategorySummaries(
+            IEnumerable<string> allCategories,
+            IReadOnlyList<CategoryBudget> budgets,
+            IReadOnlyDictionary<string, decimal> spentByCategoryThisMonth)
+        {
+            var result = new List<CategoryBudgetSummary>();
+
+            foreach (var category in allCategories)
+            {
+                var budgetRow = budgets.FirstOrDefault(b => b.Category == category);
+                spentByCategoryThisMonth.TryGetValue(category, out var spent);
+
+                result.Add(new CategoryBudgetSummary
+                {
+                    Category = category,
+                    Allocated = budgetRow?.AllocatedAmount ?? 0,
+                    Spent = spent
+                });
+            }
+            return result;
+        }
     }
 }
