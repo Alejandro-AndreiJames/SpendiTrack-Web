@@ -1,182 +1,510 @@
 ﻿@model SpendiTrackWeb.Models.ExpenseIndexViewModel
 
+
+
 @{
+
     ViewData["Title"] = "Expense Tracker";
+
 }
+
+
 
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+
     <div>
+
         <h1>Expense Tracker</h1>
+
         <p class="lead">
+
             @if (!string.IsNullOrWhiteSpace(Model.SearchPhrase))
+
             {
+
                 <text>Results for &ldquo;@Model.SearchPhrase&rdquo;</text>
+
             }
+
             else
+
             {
+
                 <text>All your recorded spending in one place.</text>
+
             }
+
         </p>
+
     </div>
+
     <div class="action-links">
+
         <a asp-action="Create" class="btn btn-gold">+ Add Expense</a>
+
         <a asp-action="ShowSearchForm" class="btn btn-outline-gold">Search</a>
+
     </div>
+
 </div>
+
+
+
+@if (!ViewData.ModelState.IsValid)
+
+{
+
+    <div class="alert alert-danger mb-4" style="background: rgba(231,76,60,0.15); border: 1px solid #e74c3c; color: #ff6b6b;">
+
+        <div asp-validation-summary="All"></div>
+
+    </div>
+
+}
+
+
 
 @if (!Model.HasBudgetSetup)
+
 {
+
     <div class="form-panel mb-4">
+
         <h2 class="h5 mb-2" style="color: var(--gold);">Set up your monthly budget</h2>
+
         <p class="help-text mb-3">Enter your income first so we can calculate your spending limit.</p>
 
+
+
         <form asp-action="SaveBudget" method="post" class="row g-3">
+
             @Html.AntiForgeryToken()
 
+
+
             <div class="col-md-4">
+
                 <label class="form-label">Monthly income</label>
+
                 <input name="MonthlyIncome" value="@Model.MonthlyIncome"
+
                        class="form-control" type="number" step="0.01" min="0.01" required />
+
             </div>
+
             <div class="col-md-4">
+
                 <label class="form-label">Savings goal (%)</label>
+
                 <input name="SavingsPercent" value="@(Model.SavingsPercent > 0 ? Model.SavingsPercent : 10)"
+
                        class="form-control" type="number" min="0" max="100" />
+
             </div>
+
             <div class="col-md-4">
+
                 <label class="form-label">Fixed monthly costs</label>
+
                 <input name="FixedMonthlyCosts" value="@Model.FixedMonthlyCosts"
+
                        class="form-control" type="number" step="0.01" min="0" />
+
             </div>
+
             <div class="col-12">
+
                 <button type="submit" class="btn btn-gold">Save income &amp; limit</button>
+
             </div>
+
         </form>
+
     </div>
+
 }
+
+
 
 <div class="row g-3 mb-4">
+
     @if (Model.HasBudgetSetup)
+
     {
+
         <div class="col-6 col-md-3">
+
             <div class="stat-card">
+
                 <div class="stat-label">Monthly income</div>
+
                 <div class="stat-value">@Model.MonthlyIncome.ToString("C")</div>
+
             </div>
+
         </div>
+
         <div class="col-6 col-md-3">
+
             <div class="stat-card">
+
                 <div class="stat-label">Spending limit</div>
+
                 <div class="stat-value">@Model.SpendingLimit.ToString("C")</div>
+
             </div>
+
         </div>
+
         <div class="col-6 col-md-3">
+
             <div class="stat-card">
+
                 <div class="stat-label">Spent this month</div>
+
                 <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
+
             </div>
+
         </div>
+
         <div class="col-6 col-md-3">
+
             <div class="stat-card">
+
                 <div class="stat-label">Remaining</div>
+
                 <div class="stat-value" style="@(Model.RemainingBudget < 0 ? "color: #ff6b6b;" : "")">
+
                     @Model.RemainingBudget.ToString("C")
+
                 </div>
+
             </div>
+
         </div>
-        
+
     }
+
     else
+
     {
+
         <div class="col-6 col-md-3">
+
             <div class="stat-card">
+
                 <div class="stat-label">Total spent</div>
+
                 <div class="stat-value">@Model.TotalAmount.ToString("C")</div>
+
             </div>
+
         </div>
+
         <div class="col-6 col-md-3">
+
             <div class="stat-card">
+
                 <div class="stat-label">This month</div>
+
                 <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
+
             </div>
+
         </div>
+
         <div class="col-6 col-md-3">
+
             <div class="stat-card">
+
                 <div class="stat-label">Transactions</div>
+
                 <div class="stat-value">@Model.TransactionCount</div>
+
             </div>
+
         </div>
+
         <div class="col-6 col-md-3">
+
             <div class="stat-card">
+
                 <div class="stat-label">Average</div>
+
                 <div class="stat-value">@Model.AverageAmount.ToString("C")</div>
+
             </div>
+
         </div>
+
     }
+
 </div>
 
+
+
 @if (Model.HasBudgetSetup)
+
 {
+
+    <div class="form-panel mb-4">
+
+        <h2 class="h5 mb-2" style="color: var(--gold);">Allocation summary</h2>
+
+        <div class="allocation-summary">
+            <div class="allocation-summary__item allocation-summary__item--left">
+                <div class="allocation-summary__label">Allocated</div>
+                <div class="allocation-summary__value">@Model.TotalAllocated.ToString("C")</div>
+            </div>
+            <div class="allocation-summary__item allocation-summary__item--center">
+                <div class="allocation-summary__label">Unassigned</div>
+                <div class="allocation-summary__value @(Model.UnallocatedFromLimit < 0 ? "allocation-summary__value--over" : "")">
+                    @Model.UnallocatedFromLimit.ToString("C")
+                </div>
+            </div>
+            <div class="allocation-summary__item allocation-summary__item--right">
+                <div class="allocation-summary__label">Limit</div>
+                <div class="allocation-summary__value">@Model.SpendingLimit.ToString("C")</div>
+            </div>
+        </div>
+
+    </div>
+
+
+
     <details class="form-panel mb-4">
+
         <summary style="cursor:pointer; color: var(--text-secondary);">Edit monthly income</summary>
+
         <form asp-action="SaveBudget" method="post" class="row g-3 mt-3">
+
             @Html.AntiForgeryToken()
+
             <div class="col-md-4">
+
                 <label class="form-label">Monthly income</label>
+
                 <input name="MonthlyIncome" value="@Model.MonthlyIncome"
+
                        class="form-control" type="number" step="0.01" min="0.01" required />
+
             </div>
+
             <div class="col-md-4">
+
                 <label class="form-label">Savings goal (%)</label>
+
                 <input name="SavingsPercent" value="@Model.SavingsPercent"
+
                        class="form-control" type="number" min="0" max="100" />
+
             </div>
+
             <div class="col-md-4">
+
                 <label class="form-label">Fixed monthly costs</label>
+
                 <input name="FixedMonthlyCosts" value="@Model.FixedMonthlyCosts"
+
                        class="form-control" type="number" step="0.01" min="0" />
+
             </div>
+
             <div class="col-12">
+
                 <button type="submit" class="btn btn-outline-gold">Update budget</button>
+
             </div>
+
         </form>
+
     </details>
+
+
+
+    <div class="form-panel mb-4">
+
+        <h2 class="h5 mb-3" style="color: var(--gold);">Category budgets</h2>
+
+        <p class="help-text mb-3">Assign amounts from your spending limit to each category.</p>
+
+
+
+        <form asp-action="SaveCategoryBudgets" method="post" class="row g-3">
+
+            @Html.AntiForgeryToken()
+
+            @for (int i = 0; i < Model.CategoryAllocationForm.Count; i++)
+
+            {
+
+                <div class="col-md-6 col-lg-3">
+
+                    <label class="form-label">@Model.CategoryAllocationForm[i].Category</label>
+
+                    <input type="hidden" name="Categories[@i].Category"
+
+                           value="@Model.CategoryAllocationForm[i].Category" />
+
+                    <input name="Categories[@i].AllocatedAmount"
+
+                           value="@Model.CategoryAllocationForm[i].AllocatedAmount"
+
+                           class="form-control" type="number" step="0.01" min="0" />
+
+                </div>
+
+            }
+
+            <div class="col-12">
+
+                <button type="submit" class="btn btn-gold">Save category budgets</button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+
+    @if (Model.HasCategoryBudgetSetup)
+
+    {
+
+        <div class="form-panel mb-4">
+
+            <h2 class="h5 mb-3" style="color: var(--gold);">Budget vs spent (this month)</h2>
+
+            @foreach (var cat in Model.CategoryBudgets)
+
+            {
+
+                <div class="category-bar">
+
+                    <div class="category-name">
+
+                        <span>@cat.Category</span>
+
+                        <span>@cat.Spent.ToString("C") / @cat.Allocated.ToString("C")</span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div class="progress-bar" style="width: @(Math.Min(cat.SpentPercentOfAllocated, 100))%"></div>
+
+                    </div>
+
+                    <small class="help-text" style="@(cat.Remaining < 0 ? "color: #ff6b6b;" : "")">
+
+                        Remaining: @cat.Remaining.ToString("C")
+
+                    </small>
+
+                </div>
+
+            }
+
+        </div>
+
+    }
+
 }
 
-@if (Model.CategoryTotals.Any())
+
+
+@if (Model.Expenses.Any())
+
 {
+
     <div class="row mb-4">
-        <div class="col-lg-5">
-            <div class="form-panel">
-                <h2 class="h5 mb-3" style="color: var(--gold);">Spending by category</h2>
-                @{
-                    var maxCategory = Model.CategoryTotals.Values.DefaultIfEmpty(1).Max();
-                }
-                @foreach (var cat in Model.CategoryTotals)
-                {
-                    var pct = maxCategory > 0 ? (double)(cat.Value / maxCategory * 100) : 0;
-                    <div class="category-bar">
-                        <div class="category-name">
-                            <span>@cat.Key</span>
-                            <span class="amount-cell">@cat.Value.ToString("C")</span>
+
+        @if (!Model.HasCategoryBudgetSetup && Model.CategoryTotals.Any())
+
+        {
+
+            <div class="col-lg-5">
+
+                <div class="form-panel">
+
+                    <h2 class="h5 mb-3" style="color: var(--gold);">Spending by category (this month)</h2>
+
+                    @{
+
+                        var maxCategory = Model.CategoryTotals.Values.DefaultIfEmpty(1).Max();
+
+                    }
+
+                    @foreach (var cat in Model.CategoryTotals)
+
+                    {
+
+                        var pct = maxCategory > 0 ? (double)(cat.Value / maxCategory * 100) : 0;
+
+                        <div class="category-bar">
+
+                            <div class="category-name">
+
+                                <span>@cat.Key</span>
+
+                                <span class="amount-cell">@cat.Value.ToString("C")</span>
+
+                            </div>
+
+                            <div class="progress">
+
+                                <div class="progress-bar" style="width: @pct.ToString("F0")%"></div>
+
+                            </div>
+
                         </div>
-                        <div class="progress">
-                            <div class="progress-bar" style="width: @pct.ToString("F0")%"></div>
-                        </div>
-                    </div>
-                }
+
+                    }
+
+                </div>
+
             </div>
-        </div>
-        <div class="col-lg-7">
-            @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
-        </div>
+
+            <div class="col-lg-7">
+
+                @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
+
+            </div>
+
+        }
+
+        else
+
+        {
+
+            <div class="col-12">
+
+                @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
+
+            </div>
+
+        }
+
     </div>
+
 }
+
 else
+
 {
+
     <div class="empty-state mb-4">
+
         <h3>No expenses yet</h3>
-        <p>Start tracking by adding your first expense. Sign in if prompted when creating entries.</p>
+
+        <p>Start tracking by adding your first expense.</p>
+
         <a asp-action="Create" class="btn btn-gold mt-2">Add your first expense</a>
+
     </div>
+
 }
+
+

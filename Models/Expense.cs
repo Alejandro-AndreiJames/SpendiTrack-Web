@@ -17,6 +17,9 @@ namespace SpendiTrackWeb.Models
         [Required]
         public string Category { get; set; } = string.Empty;
 
+        [Required]
+        public string UserId { get; set; } = string.Empty;
+
         public Expense()
         {
 

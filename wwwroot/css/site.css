@@ -167,6 +167,44 @@ a:hover {
   line-height: 1.2;
 }
 
+.allocation-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.allocation-summary__item--left {
+  text-align: left;
+}
+
+.allocation-summary__item--center {
+  text-align: center;
+}
+
+.allocation-summary__item--right {
+  text-align: right;
+}
+
+.allocation-summary__label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+}
+
+.allocation-summary__value {
+  color: var(--gold);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.allocation-summary__value--over {
+  color: #ff6b6b;
+}
+
 .page-header {
   margin-bottom: 1.75rem;
   padding-bottom: 1rem;
