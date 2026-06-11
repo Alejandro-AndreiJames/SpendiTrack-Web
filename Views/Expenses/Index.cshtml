@@ -51,15 +51,10 @@
 
 
 @if (!ViewData.ModelState.IsValid)
-
 {
-
-    <div class="alert alert-danger mb-4" style="background: rgba(231,76,60,0.15); border: 1px solid #e74c3c; color: #ff6b6b;">
-
+    <div class="tracker-alert mb-4" role="alert">
         <div asp-validation-summary="All"></div>
-
     </div>
-
 }
 
 
@@ -373,17 +368,19 @@
         </div>
 
         <div class="category-budget-grid" id="categoryBudgetsView">
-            @foreach (var item in Model.CategoryAllocationForm)
+            @foreach (var item in Model.CategoryBudgets)
             {
-                <div class="category-budget-chip @(item.AllocatedAmount == 0 ? "category-budget-chip--zero" : "")">
+                <div class="category-budget-chip @(item.Allocated == 0 ? "category-budget-chip--zero" : "")">
                     <span class="category-budget-chip__name">@item.Category</span>
-                    <span class="category-budget-chip__amount">@item.AllocatedAmount.ToString("C")</span>
+                    <span class="category-budget-chip__amount" data-amount="@item.Allocated">@item.Allocated.ToString("C")</span>
                 </div>
             }
         </div>
 
-        <form asp-action="SaveCategoryBudgets" method="post" class="budget-profile__edit" id="categoryBudgetsEdit" hidden>
+        <form asp-action="SaveCategoryBudgets" method="post" class="budget-profile__edit" id="categoryBudgetsEdit" hidden
+              data-spending-limit="@Model.SpendingLimit">
             @Html.AntiForgeryToken()
+            <p class="category-budget-form-error" id="categoryBudgetFormError" hidden role="alert"></p>
             <div class="category-budget-grid category-budget-grid--edit">
                 @for (int i = 0; i < Model.CategoryAllocationForm.Count; i++)
                 {
@@ -397,8 +394,14 @@
                     </div>
                 }
             </div>
+            <div class="category-budget-form-total">
+                <span>Total allocated</span>
+                <span id="categoryBudgetRunningTotal">@Model.TotalAllocated.ToString("C")</span>
+                <span class="category-budget-form-total__sep">/</span>
+                <span id="categoryBudgetLimit">@Model.SpendingLimit.ToString("C")</span>
+            </div>
             <div class="budget-profile__actions">
-                <button type="submit" class="btn btn-gold">Save changes</button>
+                <button type="submit" class="btn btn-gold" id="btnSaveCategoryBudgets">Save changes</button>
                 <button type="button" class="btn btn-outline-gold" id="btnCancelCategoryBudgets">Cancel</button>
             </div>
         </form>
@@ -407,148 +410,81 @@
 
 
 
-    @if (Model.HasCategoryBudgetSetup)
+}
 
-    {
-
-        <div class="form-panel mb-4">
-
-            <h2 class="h5 mb-3" style="color: var(--gold);">Budget vs spent (this month)</h2>
-
-            @foreach (var cat in Model.CategoryBudgets)
-
-            {
-
-                <div class="category-bar">
-
-                    <div class="category-name">
-
-                        <span>@cat.Category</span>
-
-                        <span>@cat.Spent.ToString("C") / @cat.Allocated.ToString("C")</span>
-
+@if (Model.HasBudgetSetup)
+{
+    <div class="row g-3 mb-4 tracker-activity">
+        <div class="col-lg-7">
+            <div class="form-panel tracker-activity-panel">
+                <div class="tracker-section-header">
+                    <div>
+                        <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
+                        <p class="help-text mb-0">Your recorded expenses, newest first.</p>
                     </div>
-
-                    <div class="progress">
-
-                        <div class="progress-bar" style="width: @(Math.Min(cat.SpentPercentOfAllocated, 100))%"></div>
-
-                    </div>
-
-                    <small class="help-text" style="@(cat.Remaining < 0 ? "color: #ff6b6b;" : "")">
-
-                        Remaining: @cat.Remaining.ToString("C")
-
-                    </small>
-
+                    @if (Model.Expenses.Any())
+                    {
+                        <span class="tracker-section-header__badge">@Model.TransactionCount</span>
+                    }
                 </div>
 
-            }
-
+                <div class="tracker-activity-panel__scroll">
+                    @if (Model.Expenses.Any())
+                    {
+                        @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
+                    }
+                    else
+                    {
+                        <div class="tracker-inline-empty">
+                            <p class="mb-2">No transactions recorded yet.</p>
+                            <a asp-action="Create" class="btn btn-gold btn-sm">Add your first expense</a>
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
 
-    }
-
-}
-
-
-
-@if (Model.Expenses.Any())
-
-{
-
-    <div class="row mb-4">
-
-        @if (!Model.HasCategoryBudgetSetup && Model.CategoryTotals.Any())
-
-        {
-
-            <div class="col-lg-5">
-
-                <div class="form-panel">
-
-                    <h2 class="h5 mb-3" style="color: var(--gold);">Spending by category (this month)</h2>
-
-                    @{
-
-                        var maxCategory = Model.CategoryTotals.Values.DefaultIfEmpty(1).Max();
-
-                    }
-
-                    @foreach (var cat in Model.CategoryTotals)
-
-                    {
-
-                        var pct = maxCategory > 0 ? (double)(cat.Value / maxCategory * 100) : 0;
-
-                        <div class="category-bar">
-
-                            <div class="category-name">
-
-                                <span>@cat.Key</span>
-
-                                <span class="amount-cell">@cat.Value.ToString("C")</span>
-
-                            </div>
-
-                            <div class="progress">
-
-                                <div class="progress-bar" style="width: @pct.ToString("F0")%"></div>
-
-                            </div>
-
-                        </div>
-
-                    }
-
-                </div>
-
-            </div>
-
-            <div class="col-lg-7">
-
-                @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
-
-            </div>
-
-        }
-
-        else
-
-        {
-
-            <div class="col-12">
-
-                @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
-
-            </div>
-
-        }
-
+        <div class="col-lg-5">
+            @await Html.PartialAsync("_CategoryUtilization", Model)
+        </div>
     </div>
-
 }
-
+else if (Model.Expenses.Any())
+{
+    <div class="form-panel mb-4 tracker-activity-panel">
+        <div class="tracker-section-header">
+            <div>
+                <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
+                <p class="help-text mb-0">Your recorded expenses, newest first.</p>
+            </div>
+            <span class="tracker-section-header__badge">@Model.TransactionCount</span>
+        </div>
+        <div class="tracker-activity-panel__scroll">
+            @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
+        </div>
+    </div>
+}
 else
-
 {
-
     <div class="empty-state mb-4">
-
         <h3>No expenses yet</h3>
-
         <p>Start tracking by adding your first expense.</p>
-
         <a asp-action="Create" class="btn btn-gold mt-2">Add your first expense</a>
-
     </div>
+}
 
+@{
+    var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
 }
 
 @section Scripts {
     <script>
         (function () {
-            function setupEditPanel(btnEditId, btnCancelId, viewId, editId) {
+            function formatMoney(value) {
+                return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(value);
+            }
+
+            function setupEditPanel(btnEditId, btnCancelId, viewId, editId, onCancel) {
                 const btnEdit = document.getElementById(btnEditId);
                 const btnCancel = document.getElementById(btnCancelId);
                 const view = document.getElementById(viewId);
@@ -563,14 +499,95 @@ else
                 });
 
                 btnCancel.addEventListener('click', function () {
+                    if (onCancel) onCancel();
                     view.hidden = false;
                     edit.hidden = true;
                     btnEdit.hidden = false;
                 });
             }
 
+            function resetCategoryFormFromView() {
+                const view = document.getElementById('categoryBudgetsView');
+                const form = document.getElementById('categoryBudgetsEdit');
+                if (!view || !form) return;
+
+                const amounts = view.querySelectorAll('.category-budget-chip__amount');
+                const inputs = form.querySelectorAll('input[name$=".AllocatedAmount"]');
+                amounts.forEach(function (el, i) {
+                    if (inputs[i]) {
+                        inputs[i].value = el.dataset.amount || '0';
+                    }
+                });
+                validateCategoryBudgetForm();
+            }
+
+            function validateCategoryBudgetForm() {
+                const form = document.getElementById('categoryBudgetsEdit');
+                if (!form) return true;
+
+                const limit = parseFloat(form.dataset.spendingLimit) || 0;
+                const errorEl = document.getElementById('categoryBudgetFormError');
+                const totalEl = document.getElementById('categoryBudgetRunningTotal');
+                const saveBtn = document.getElementById('btnSaveCategoryBudgets');
+                const inputs = form.querySelectorAll('input[name$=".AllocatedAmount"]');
+
+                let total = 0;
+                inputs.forEach(function (inp) {
+                    total += parseFloat(inp.value) || 0;
+                });
+
+                if (totalEl) totalEl.textContent = formatMoney(total);
+
+                const overLimit = total > limit + 0.001;
+                if (overLimit) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Total allocations (' + formatMoney(total) + ') cannot exceed your spending limit (' + formatMoney(limit) + ').';
+                        errorEl.hidden = false;
+                    }
+                    if (saveBtn) saveBtn.disabled = true;
+                    return false;
+                }
+
+                if (errorEl) errorEl.hidden = true;
+                if (saveBtn) saveBtn.disabled = false;
+                return true;
+            }
+
+            function setupCategoryBudgetValidation() {
+                const form = document.getElementById('categoryBudgetsEdit');
+                if (!form) return;
+
+                form.querySelectorAll('input[name$=".AllocatedAmount"]').forEach(function (inp) {
+                    inp.addEventListener('input', validateCategoryBudgetForm);
+                });
+
+                form.addEventListener('submit', function (e) {
+                    if (!validateCategoryBudgetForm()) e.preventDefault();
+                });
+
+                validateCategoryBudgetForm();
+            }
+
             setupEditPanel('btnEditProfile', 'btnCancelEdit', 'budgetProfileView', 'budgetProfileEdit');
-            setupEditPanel('btnEditCategoryBudgets', 'btnCancelCategoryBudgets', 'categoryBudgetsView', 'categoryBudgetsEdit');
+            setupEditPanel('btnEditCategoryBudgets', 'btnCancelCategoryBudgets', 'categoryBudgetsView', 'categoryBudgetsEdit', resetCategoryFormFromView);
+            setupCategoryBudgetValidation();
+
+            document.getElementById('btnSetCategoryBudgets')?.addEventListener('click', function () {
+                const panel = document.getElementById('categoryBudgetsPanel');
+                panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(function () {
+                    document.getElementById('btnEditCategoryBudgets')?.click();
+                }, 450);
+            });
+
+            @if (openCategoryBudgetEdit)
+            {
+                <text>
+                document.getElementById('categoryBudgetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('btnEditCategoryBudgets')?.click();
+                validateCategoryBudgetForm();
+                </text>
+            }
         })();
     </script>
 }

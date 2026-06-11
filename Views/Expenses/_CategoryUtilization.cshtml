@@ -1,0 +1,52 @@
+@model SpendiTrackWeb.Models.ExpenseIndexViewModel
+
+<div class="form-panel tracker-activity-panel category-utilization">
+    <div class="tracker-section-header">
+        <div>
+            <h2 class="h5 mb-1" style="color: var(--gold);">Monthly category utilization</h2>
+            <p class="help-text mb-0">Progress against your allocated limits this month.</p>
+        </div>
+    </div>
+
+    @if (Model.HasActiveCategoryAllocations)
+    {
+        <div class="tracker-activity-panel__scroll category-utilization__list">
+            @foreach (var cat in Model.ActiveCategoryBudgets)
+            {
+                var isOver = cat.Remaining < 0;
+                var barWidth = cat.Allocated > 0 ? Math.Min(cat.SpentPercentOfAllocated, 100) : 0;
+
+                <div class="category-util-item @(isOver ? "category-util-item--over" : "")">
+                    <div class="category-util-item__header">
+                        <span class="category-util-item__name">@cat.Category</span>
+                        <span class="category-util-item__figures">
+                            <span class="category-util-item__spent">@cat.Spent.ToString("C")</span>
+                            <span class="category-util-item__sep">/</span>
+                            <span class="category-util-item__limit">@cat.Allocated.ToString("C")</span>
+                        </span>
+                    </div>
+                    <div class="category-util-item__track">
+                        <div class="category-util-item__bar @(isOver ? "category-util-item__bar--over" : "")"
+                             style="width: @barWidth%"></div>
+                    </div>
+                    <div class="category-util-item__footer">
+                        <span class="category-util-item__pct">@cat.SpentPercentOfAllocated.ToString("0")% used</span>
+                        <span class="category-util-item__remaining @(isOver ? "category-util-item__remaining--over" : "")">
+                            @(isOver ? "Over by " + (-cat.Remaining).ToString("C") : "Remaining " + cat.Remaining.ToString("C"))
+                        </span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="tracker-activity-panel__scroll category-utilization__empty-wrap">
+            <div class="category-utilization__empty">
+                <p class="mb-2">No category limits have been assigned yet.</p>
+                <p class="help-text mb-3">Set amounts in category budgets to track spending against each limit.</p>
+                <button type="button" class="btn btn-gold btn-sm" id="btnSetCategoryBudgets">Set category budgets</button>
+            </div>
+        </div>
+    }
+</div>

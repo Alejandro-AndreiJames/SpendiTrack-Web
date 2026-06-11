@@ -129,7 +129,8 @@ namespace SpendiTrackWeb.Controllers
 
                 await ApplyBudgetToModelAsync(model);
                 await ApplyCategoryBudgetsToModelAsync(model, expenses);
-                model.CategoryAllocationForm = input.Categories;
+                ApplySubmittedCategoryForm(model, input.Categories);
+                TempData["OpenCategoryBudgetEdit"] = true;
 
                 return View("Index", model);
             }
@@ -421,6 +422,11 @@ namespace SpendiTrackWeb.Controllers
             model.CategoryBudgets = _budgetCalculator.BuildCategorySummaries(
                 ExpenseCategories.All, budgets, spentByCategory);
 
+            model.ActiveCategoryBudgets = model.CategoryBudgets
+                .Where(c => c.Allocated > 0)
+                .OrderByDescending(c => c.Allocated)
+                .ToList();
+
             model.TotalAllocated = _budgetCalculator.TotalAllocated(budgets);
             model.UnallocatedFromLimit = _budgetCalculator.Unallocated(
                 model.SpendingLimit, model.TotalAllocated);
@@ -434,6 +440,16 @@ namespace SpendiTrackWeb.Controllers
                     AllocatedAmount = budgets.FirstOrDefault(b => b.Category == cat)?.AllocatedAmount ?? 0
                 })
                 .ToList();
+        }
+
+        private static void ApplySubmittedCategoryForm(
+            ExpenseIndexViewModel model,
+            List<CategoryAllocationInput> submitted)
+        {
+            if (submitted == null || submitted.Count == 0)
+                return;
+
+            model.CategoryAllocationForm = submitted;
         }
 
         private static ExpenseIndexViewModel BuildIndexViewModel(IReadOnlyList<Expense> expenses)

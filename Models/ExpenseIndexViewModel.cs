@@ -26,5 +26,7 @@ namespace SpendiTrackWeb.Models
         public decimal UnallocatedFromLimit { get; set; }
         public List<CategoryAllocationInput> CategoryAllocationForm { get; set; } = new();
         public List<CategoryBudgetSummary> CategoryBudgets { get; set; } = new();
+        public List<CategoryBudgetSummary> ActiveCategoryBudgets { get; set; } = new();
+        public bool HasActiveCategoryAllocations => ActiveCategoryBudgets.Count > 0;
     }
 }
