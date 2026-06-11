@@ -251,23 +251,52 @@
     <div class="row g-3 mb-4 tracker-overview">
 
         <div class="col-lg-6">
-            <div class="form-panel h-100">
+            <div class="form-panel h-100 allocation-panel">
                 <h2 class="h5 mb-2" style="color: var(--gold);">Allocation summary</h2>
+                @{
+                    var allocatedPct = Model.SpendingLimit > 0
+                        ? Math.Min((double)(Model.TotalAllocated / Model.SpendingLimit * 100), 100)
+                        : 0;
+                    var unassignedPct = Model.SpendingLimit > 0 && Model.UnallocatedFromLimit > 0
+                        ? Math.Min((double)(Model.UnallocatedFromLimit / Model.SpendingLimit * 100), 100 - allocatedPct)
+                        : 0;
+                    var isOverAllocated = Model.UnallocatedFromLimit < 0;
+                }
                 <div class="allocation-summary">
                     <div class="allocation-summary__item allocation-summary__item--left">
                         <div class="allocation-summary__label">Allocated</div>
                         <div class="allocation-summary__value">@Model.TotalAllocated.ToString("C")</div>
                     </div>
-                    <div class="allocation-summary__item allocation-summary__item--center">
+                    <div class="allocation-summary__item allocation-summary__item--right">
                         <div class="allocation-summary__label">Unassigned</div>
-                        <div class="allocation-summary__value @(Model.UnallocatedFromLimit < 0 ? "allocation-summary__value--over" : "")">
+                        <div class="allocation-summary__value @(isOverAllocated ? "allocation-summary__value--over" : "")">
                             @Model.UnallocatedFromLimit.ToString("C")
                         </div>
                     </div>
-                    <div class="allocation-summary__item allocation-summary__item--right">
-                        <div class="allocation-summary__label">Limit</div>
-                        <div class="allocation-summary__value">@Model.SpendingLimit.ToString("C")</div>
+                </div>
+                <div class="allocation-summary__visual">
+                    <div class="allocation-summary__bar-meta">
+                        @if (isOverAllocated)
+                        {
+                            <span class="allocation-summary__bar-note allocation-summary__value--over">
+                                Over limit by @((-Model.UnallocatedFromLimit).ToString("C"))
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="allocation-summary__bar-note">@allocatedPct.ToString("0")% assigned</span>
+                            <span class="allocation-summary__bar-note">@unassignedPct.ToString("0")% unassigned</span>
+                        }
                     </div>
+                    <div class="progress allocation-summary__bar" role="progressbar"
+                         aria-valuenow="@allocatedPct.ToString("0")" aria-valuemin="0" aria-valuemax="100"
+                         aria-label="Share of spending limit allocated to categories">
+                        <div class="progress-bar @(isOverAllocated ? "allocation-summary__bar-fill--over" : "allocation-summary__bar-fill")"
+                             style="width: @(isOverAllocated ? 100 : allocatedPct)%"></div>
+                    </div>
+                    <p class="help-text allocation-summary__caption mb-0">
+                        Category budgets vs your @Model.SpendingLimit.ToString("C") spending limit
+                    </p>
                 </div>
             </div>
         </div>
