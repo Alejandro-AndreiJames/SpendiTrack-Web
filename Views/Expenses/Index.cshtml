@@ -248,78 +248,83 @@
 
 {
 
-    <div class="form-panel mb-4">
+    <div class="row g-3 mb-4 tracker-overview">
 
-        <h2 class="h5 mb-2" style="color: var(--gold);">Allocation summary</h2>
-
-        <div class="allocation-summary">
-            <div class="allocation-summary__item allocation-summary__item--left">
-                <div class="allocation-summary__label">Allocated</div>
-                <div class="allocation-summary__value">@Model.TotalAllocated.ToString("C")</div>
-            </div>
-            <div class="allocation-summary__item allocation-summary__item--center">
-                <div class="allocation-summary__label">Unassigned</div>
-                <div class="allocation-summary__value @(Model.UnallocatedFromLimit < 0 ? "allocation-summary__value--over" : "")">
-                    @Model.UnallocatedFromLimit.ToString("C")
+        <div class="col-lg-6">
+            <div class="form-panel h-100">
+                <h2 class="h5 mb-2" style="color: var(--gold);">Allocation summary</h2>
+                <div class="allocation-summary">
+                    <div class="allocation-summary__item allocation-summary__item--left">
+                        <div class="allocation-summary__label">Allocated</div>
+                        <div class="allocation-summary__value">@Model.TotalAllocated.ToString("C")</div>
+                    </div>
+                    <div class="allocation-summary__item allocation-summary__item--center">
+                        <div class="allocation-summary__label">Unassigned</div>
+                        <div class="allocation-summary__value @(Model.UnallocatedFromLimit < 0 ? "allocation-summary__value--over" : "")">
+                            @Model.UnallocatedFromLimit.ToString("C")
+                        </div>
+                    </div>
+                    <div class="allocation-summary__item allocation-summary__item--right">
+                        <div class="allocation-summary__label">Limit</div>
+                        <div class="allocation-summary__value">@Model.SpendingLimit.ToString("C")</div>
+                    </div>
                 </div>
             </div>
-            <div class="allocation-summary__item allocation-summary__item--right">
-                <div class="allocation-summary__label">Limit</div>
-                <div class="allocation-summary__value">@Model.SpendingLimit.ToString("C")</div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="form-panel h-100 budget-profile" id="budgetProfile">
+                <div class="budget-profile__header">
+                    <h2 class="h5 mb-0" style="color: var(--gold);">Budget profile</h2>
+                    <button type="button" class="btn-edit-profile" id="btnEditProfile" aria-label="Edit budget profile">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="budget-profile__view" id="budgetProfileView">
+                    <div class="budget-profile__row">
+                        <span class="budget-profile__label">Monthly income</span>
+                        <span class="budget-profile__value">@Model.MonthlyIncome.ToString("C")</span>
+                    </div>
+                    <div class="budget-profile__row">
+                        <span class="budget-profile__label">Savings goal</span>
+                        <span class="budget-profile__value">@Model.SavingsPercent.ToString("0.##")%</span>
+                    </div>
+                    <div class="budget-profile__row">
+                        <span class="budget-profile__label">Fixed monthly costs</span>
+                        <span class="budget-profile__value">@Model.FixedMonthlyCosts.ToString("C")</span>
+                    </div>
+                </div>
+
+                <form asp-action="SaveBudget" method="post" class="budget-profile__edit" id="budgetProfileEdit" hidden>
+                    @Html.AntiForgeryToken()
+                    <div class="budget-profile__field">
+                        <label class="form-label">Monthly income</label>
+                        <input name="MonthlyIncome" value="@Model.MonthlyIncome"
+                               class="form-control" type="number" step="0.01" min="0.01" required />
+                    </div>
+                    <div class="budget-profile__field">
+                        <label class="form-label">Savings goal (%)</label>
+                        <input name="SavingsPercent" value="@Model.SavingsPercent"
+                               class="form-control" type="number" min="0" max="100" />
+                    </div>
+                    <div class="budget-profile__field">
+                        <label class="form-label">Fixed monthly costs</label>
+                        <input name="FixedMonthlyCosts" value="@Model.FixedMonthlyCosts"
+                               class="form-control" type="number" step="0.01" min="0" />
+                    </div>
+                    <div class="budget-profile__actions">
+                        <button type="submit" class="btn btn-gold">Save changes</button>
+                        <button type="button" class="btn btn-outline-gold" id="btnCancelEdit">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
 
     </div>
-
-
-
-    <details class="form-panel mb-4">
-
-        <summary style="cursor:pointer; color: var(--text-secondary);">Edit monthly income</summary>
-
-        <form asp-action="SaveBudget" method="post" class="row g-3 mt-3">
-
-            @Html.AntiForgeryToken()
-
-            <div class="col-md-4">
-
-                <label class="form-label">Monthly income</label>
-
-                <input name="MonthlyIncome" value="@Model.MonthlyIncome"
-
-                       class="form-control" type="number" step="0.01" min="0.01" required />
-
-            </div>
-
-            <div class="col-md-4">
-
-                <label class="form-label">Savings goal (%)</label>
-
-                <input name="SavingsPercent" value="@Model.SavingsPercent"
-
-                       class="form-control" type="number" min="0" max="100" />
-
-            </div>
-
-            <div class="col-md-4">
-
-                <label class="form-label">Fixed monthly costs</label>
-
-                <input name="FixedMonthlyCosts" value="@Model.FixedMonthlyCosts"
-
-                       class="form-control" type="number" step="0.01" min="0" />
-
-            </div>
-
-            <div class="col-12">
-
-                <button type="submit" class="btn btn-outline-gold">Update budget</button>
-
-            </div>
-
-        </form>
-
-    </details>
 
 
 
@@ -507,4 +512,28 @@ else
 
 }
 
+@section Scripts {
+    <script>
+        (function () {
+            const btnEdit = document.getElementById('btnEditProfile');
+            const btnCancel = document.getElementById('btnCancelEdit');
+            const view = document.getElementById('budgetProfileView');
+            const edit = document.getElementById('budgetProfileEdit');
+
+            if (!btnEdit || !view || !edit) return;
+
+            btnEdit.addEventListener('click', function () {
+                view.hidden = true;
+                edit.hidden = false;
+                btnEdit.hidden = true;
+            });
+
+            btnCancel.addEventListener('click', function () {
+                view.hidden = false;
+                edit.hidden = true;
+                btnEdit.hidden = false;
+            });
+        })();
+    </script>
+}
 
