@@ -13,7 +13,7 @@ namespace SpendiTrackWeb.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20250718034542_initialsetup")]
-    partial class initialsetup
+    partial class InitialSetup
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

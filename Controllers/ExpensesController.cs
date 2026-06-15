@@ -33,6 +33,7 @@ namespace SpendiTrackWeb.Controllers
 
             await ApplyBudgetToModelAsync(model);
             await ApplyCategoryBudgetsToModelAsync(model, expenses);
+            ApplyBudgetBreakdownToModel(model);
 
             return View(model);
         }
@@ -51,6 +52,7 @@ namespace SpendiTrackWeb.Controllers
                 model.FixedMonthlyCosts = input.FixedMonthlyCosts;
 
                 await ApplyCategoryBudgetsToModelAsync(model, expenses);
+                ApplyBudgetBreakdownToModel(model);
                 return View("Index", model);
             }
 
@@ -108,6 +110,7 @@ namespace SpendiTrackWeb.Controllers
 
                 await ApplyBudgetToModelAsync(errorModel);
                 await ApplyCategoryBudgetsToModelAsync(errorModel, expenses);
+                ApplyBudgetBreakdownToModel(errorModel); 
                 return View("Index", errorModel);
             }
 
@@ -131,6 +134,7 @@ namespace SpendiTrackWeb.Controllers
                 await ApplyCategoryBudgetsToModelAsync(model, expenses);
                 ApplySubmittedCategoryForm(model, input.Categories);
                 TempData["OpenCategoryBudgetEdit"] = true;
+                ApplyBudgetBreakdownToModel(model);
 
                 return View("Index", model);
             }
@@ -185,6 +189,7 @@ namespace SpendiTrackWeb.Controllers
 
             await ApplyBudgetToModelAsync(model);
             await ApplyCategoryBudgetsToModelAsync(model, expenses);
+            ApplyBudgetBreakdownToModel(model);
 
             return View("Index", model);
         }
@@ -440,6 +445,27 @@ namespace SpendiTrackWeb.Controllers
                     AllocatedAmount = budgets.FirstOrDefault(b => b.Category == cat)?.AllocatedAmount ?? 0
                 })
                 .ToList();
+        }
+
+        private void ApplyBudgetBreakdownToModel(ExpenseIndexViewModel model)
+        {
+            if (!model.HasBudgetSetup)
+                return;
+
+            var income = new BudgetCalculationResult
+            {
+                MonthlyIncome = model.MonthlyIncome,
+                SavingsPercent = model.SavingsPercent,
+                SavingsAmount = model.SavingsAmount,
+                FixedMonthlyCosts = model.FixedMonthlyCosts,
+                SpendingLimit = model.SpendingLimit,
+                RemainingBudget = model.RemainingBudget,
+            };
+
+            model.BudgetBreakdown = _budgetCalculator.BuildBreakdown(
+                income,
+                model.TotalAllocated,
+                model.MonthlyTotal);
         }
 
         private static void ApplySubmittedCategoryForm(
