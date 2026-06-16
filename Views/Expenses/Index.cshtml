@@ -1,56 +1,31 @@
 ﻿@model SpendiTrackWeb.Models.ExpenseIndexViewModel
 
-
-
 @{
-
     ViewData["Title"] = "Expense Tracker";
-
+    var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
 }
 
-
-
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
-
     <div>
-
         <h1>Expense Tracker</h1>
-
         <p class="lead">
-
             @if (!string.IsNullOrWhiteSpace(Model.SearchPhrase))
-
             {
-
                 <text>Results for &ldquo;@Model.SearchPhrase&rdquo;</text>
-
             }
-
             else
-
             {
-
                 <text>All your recorded spending in one place.</text>
-
             }
-
         </p>
-
     </div>
-
     <div class="action-links">
-
         <a asp-action="Create" class="btn btn-gold">+ Add Expense</a>
-
         <a asp-action="ShowSearchForm" class="btn btn-outline-gold">Search</a>
-
     </div>
-
 </div>
 
-
-
-<div class="tracker-page">
+<div class="tracker-page" data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()">
 
 @if (!ViewData.ModelState.IsValid)
 {
@@ -60,191 +35,164 @@
 }
 
 @if (!Model.HasBudgetSetup)
-
 {
-
     <div class="form-panel">
-
         <h2 class="h5 mb-2" style="color: var(--gold);">Set up your monthly budget</h2>
-
         <p class="help-text mb-3">Enter your income first so we can calculate your spending limit.</p>
-
-
-
         <form asp-action="SaveBudget" method="post" class="row g-3">
-
             @Html.AntiForgeryToken()
-
-
-
             <div class="col-md-4">
-
                 <label class="form-label">Monthly income</label>
-
                 <input name="MonthlyIncome" value="@Model.MonthlyIncome"
-
                        class="form-control" type="number" step="0.01" min="0.01" required />
-
             </div>
-
             <div class="col-md-4">
-
                 <label class="form-label">Savings goal (%)</label>
-
                 <input name="SavingsPercent" value="@(Model.SavingsPercent > 0 ? Model.SavingsPercent : 10)"
-
                        class="form-control" type="number" min="0" max="100" />
-
             </div>
-
             <div class="col-md-4">
-
                 <label class="form-label">Fixed monthly costs</label>
-
                 <input name="FixedMonthlyCosts" value="@Model.FixedMonthlyCosts"
-
                        class="form-control" type="number" step="0.01" min="0" />
-
             </div>
-
             <div class="col-12">
-
                 <button type="submit" class="btn btn-gold">Save income &amp; limit</button>
-
             </div>
-
         </form>
-
     </div>
-
 }
 
-
-
 <div class="row g-3 tracker-stats">
-
     @if (Model.HasBudgetSetup)
-
     {
-
         <div class="col-6 col-md-3">
-
             <div class="stat-card">
-
                 <div class="stat-label">Monthly income</div>
-
                 <div class="stat-value">@Model.MonthlyIncome.ToString("C")</div>
-
             </div>
-
         </div>
-
         <div class="col-6 col-md-3">
-
             <div class="stat-card">
-
                 <div class="stat-label">Spending limit</div>
-
                 <div class="stat-value">@Model.SpendingLimit.ToString("C")</div>
-
             </div>
-
         </div>
-
         <div class="col-6 col-md-3">
-
             <div class="stat-card">
-
                 <div class="stat-label">Spent this month</div>
-
                 <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
-
             </div>
-
         </div>
-
         <div class="col-6 col-md-3">
-
-            <div class="stat-card">
-
+            <div class="stat-card stat-card--highlight@(Model.RemainingBudget < 0 ? " stat-card--over" : "")">
                 <div class="stat-label">Remaining</div>
-
-                <div class="stat-value" style="@(Model.RemainingBudget < 0 ? "color: #ff6b6b;" : "")">
-
-                    @Model.RemainingBudget.ToString("C")
-
-                </div>
-
+                <div class="stat-value">@Model.RemainingBudget.ToString("C")</div>
             </div>
-
         </div>
-
     }
-
     else
-
     {
-
         <div class="col-6 col-md-3">
-
             <div class="stat-card">
-
                 <div class="stat-label">Total spent</div>
-
                 <div class="stat-value">@Model.TotalAmount.ToString("C")</div>
-
             </div>
-
         </div>
-
         <div class="col-6 col-md-3">
-
             <div class="stat-card">
-
                 <div class="stat-label">This month</div>
-
                 <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
-
             </div>
-
         </div>
-
         <div class="col-6 col-md-3">
-
             <div class="stat-card">
-
                 <div class="stat-label">Transactions</div>
-
                 <div class="stat-value">@Model.TransactionCount</div>
-
             </div>
-
         </div>
-
         <div class="col-6 col-md-3">
-
             <div class="stat-card">
-
                 <div class="stat-label">Average</div>
-
                 <div class="stat-value">@Model.AverageAmount.ToString("C")</div>
-
             </div>
-
         </div>
-
     }
-
 </div>
 
+@if (Model.HasBudgetSetup)
+{
+    var incomeBarSavings = Model.MonthlyIncome > 0
+        ? Math.Min((double)(Model.SavingsAmount / Model.MonthlyIncome * 100), 100)
+        : 0;
+    var incomeBarFixed = Model.MonthlyIncome > 0
+        ? Math.Min((double)(Model.FixedMonthlyCosts / Model.MonthlyIncome * 100), 100 - incomeBarSavings)
+        : 0;
+    var incomeBarLimit = Model.MonthlyIncome > 0
+        ? Math.Min((double)(Model.SpendingLimit / Model.MonthlyIncome * 100), 100 - incomeBarSavings - incomeBarFixed)
+        : 0;
 
+    <div class="form-panel budget-breakdown" data-user-key="@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anon")">
+        <div class="budget-breakdown__header">
+            <div class="budget-breakdown__header-copy">
+                <h2 class="h5 mb-1" style="color: var(--gold);">Monthly budget breakdown</h2>
+                <p class="help-text mb-0">Where your income goes each month.</p>
+            </div>
+        </div>
+
+        <div class="budget-breakdown__color-panel">
+            <p class="budget-breakdown__hint mb-0">Tip: You can personalize these colors.</p>
+            <div class="budget-breakdown__color-tools" aria-label="Choose colors for breakdown segments">
+                <label class="budget-breakdown__color-item">
+                    <span>Savings</span>
+                    <input type="color" value="#a8892a" data-breakdown-color="savings" aria-label="Savings color" />
+                </label>
+                <label class="budget-breakdown__color-item">
+                    <span>Fixed costs</span>
+                    <input type="color" value="#6b6b6b" data-breakdown-color="fixed" aria-label="Fixed costs color" />
+                </label>
+                <label class="budget-breakdown__color-item">
+                    <span>Available</span>
+                    <input type="color" value="#d4af37" data-breakdown-color="limit" aria-label="Available to spend color" />
+                </label>
+            </div>
+        </div>
+
+        <div class="budget-breakdown__stacked-bar" aria-label="Income split across savings, fixed costs, and spending limit">
+            <span class="budget-breakdown__stack budget-breakdown__stack--savings" style="width: @($"{incomeBarSavings}%")"></span>
+            <span class="budget-breakdown__stack budget-breakdown__stack--fixed" style="width: @($"{incomeBarFixed}%")"></span>
+            <span class="budget-breakdown__stack budget-breakdown__stack--limit" style="width: @($"{incomeBarLimit}%")"></span>
+        </div>
+
+        <div class="budget-breakdown__segments">
+                <div class="budget-breakdown__segment budget-breakdown__segment--savings">
+                    <span class="budget-breakdown__segment-dot budget-breakdown__segment-dot--savings" aria-hidden="true"></span>
+                    <div class="budget-breakdown__segment-body">
+                        <span class="budget-breakdown__segment-label">Savings (@Model.SavingsPercent.ToString("0.##")%)</span>
+                        <span class="budget-breakdown__segment-value">@Model.SavingsAmount.ToString("C")</span>
+                    </div>
+                </div>
+                <div class="budget-breakdown__segment budget-breakdown__segment--fixed">
+                    <span class="budget-breakdown__segment-dot budget-breakdown__segment-dot--fixed" aria-hidden="true"></span>
+                    <div class="budget-breakdown__segment-body">
+                        <span class="budget-breakdown__segment-label">Fixed costs (@incomeBarFixed.ToString("0")%)</span>
+                        <span class="budget-breakdown__segment-value">@Model.FixedMonthlyCosts.ToString("C")</span>
+                    </div>
+                </div>
+                <div class="budget-breakdown__segment budget-breakdown__segment--limit">
+                    <span class="budget-breakdown__segment-dot budget-breakdown__segment-dot--limit" aria-hidden="true"></span>
+                    <div class="budget-breakdown__segment-body">
+                        <span class="budget-breakdown__segment-label">Available to spend (@incomeBarLimit.ToString("0")%)</span>
+                        <span class="budget-breakdown__segment-value">@Model.SpendingLimit.ToString("C")</span>
+                    </div>
+                </div>
+            </div>
+    </div>
+}
 
 @if (Model.HasBudgetSetup)
-
 {
-
     <div class="row g-3 tracker-overview">
-
         <div class="col-lg-6">
             <div class="form-panel h-100 allocation-panel">
                 <h2 class="h5 mb-2" style="color: var(--gold);">Allocation summary</h2>
@@ -287,7 +235,7 @@
                          aria-valuenow="@allocatedPct.ToString("0")" aria-valuemin="0" aria-valuemax="100"
                          aria-label="Share of spending limit allocated to categories">
                         <div class="progress-bar @(isOverAllocated ? "allocation-summary__bar-fill--over" : "allocation-summary__bar-fill")"
-                             style="width: @(isOverAllocated ? 100 : allocatedPct)%"></div>
+                             style="width: @($"{(isOverAllocated ? 100 : allocatedPct)}%")"></div>
                     </div>
                     <p class="help-text allocation-summary__caption mb-0">
                         Category budgets vs your @Model.SpendingLimit.ToString("C") spending limit
@@ -314,8 +262,11 @@
                         <span class="budget-profile__value">@Model.MonthlyIncome.ToString("C")</span>
                     </div>
                     <div class="budget-profile__row">
-                        <span class="budget-profile__label">Savings goal</span>
-                        <span class="budget-profile__value">@Model.SavingsPercent.ToString("0.##")%</span>
+                        <span class="budget-profile__label">Monthly savings</span>
+                        <span class="budget-profile__value">
+                            @Model.SavingsAmount.ToString("C")
+                            (@Model.SavingsPercent.ToString("0.##")%)
+                        </span>
                     </div>
                     <div class="budget-profile__row">
                         <span class="budget-profile__label">Fixed monthly costs</span>
@@ -347,13 +298,9 @@
                 </form>
             </div>
         </div>
-
     </div>
 
-
-
     <div class="form-panel category-budgets-panel" id="categoryBudgetsPanel">
-
         <div class="budget-profile__header">
             <div>
                 <h2 class="h5 mb-1" style="color: var(--gold);">Category budgets</h2>
@@ -405,11 +352,7 @@
                 <button type="button" class="btn btn-outline-gold" id="btnCancelCategoryBudgets">Cancel</button>
             </div>
         </form>
-
     </div>
-
-
-
 }
 
 @if (Model.HasBudgetSetup)
@@ -475,13 +418,11 @@ else
 
 </div>
 
-@{
-    var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
-}
-
 @section Scripts {
     <script>
         (function () {
+            const openCategoryBudgetEdit = document.querySelector('.tracker-page')?.dataset.openCategoryBudgetEdit === 'true';
+
             function formatMoney(value) {
                 return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(value);
             }
@@ -570,9 +511,55 @@ else
                 validateCategoryBudgetForm();
             }
 
+            function setupBudgetBreakdownColors() {
+                const panel = document.querySelector('.budget-breakdown');
+                if (!panel) return;
+
+                const userKey = panel.dataset.userKey || 'anon';
+                const key = 'spenditrack.breakdown.colors.' + userKey;
+                const defaultColors = {
+                    savings: '#a8892a',
+                    fixed: '#6b6b6b',
+                    limit: '#d4af37'
+                };
+
+                function sanitizeHex(input, fallback) {
+                    return /^#[0-9a-fA-F]{6}$/.test(input || '') ? input : fallback;
+                }
+
+                function applyColors(colors) {
+                    panel.style.setProperty('--budget-savings-color', sanitizeHex(colors.savings, defaultColors.savings));
+                    panel.style.setProperty('--budget-fixed-color', sanitizeHex(colors.fixed, defaultColors.fixed));
+                    panel.style.setProperty('--budget-limit-color', sanitizeHex(colors.limit, defaultColors.limit));
+                }
+
+                let saved = null;
+                try {
+                    saved = JSON.parse(localStorage.getItem(key) || 'null');
+                } catch {
+                    saved = null;
+                }
+
+                const merged = { ...defaultColors, ...(saved || {}) };
+                applyColors(merged);
+
+                panel.querySelectorAll('input[data-breakdown-color]').forEach(function (input) {
+                    const segment = input.getAttribute('data-breakdown-color');
+                    const current = merged[segment];
+                    if (current) input.value = sanitizeHex(current, input.value);
+
+                    input.addEventListener('input', function () {
+                        merged[segment] = sanitizeHex(input.value, merged[segment]);
+                        applyColors(merged);
+                        localStorage.setItem(key, JSON.stringify(merged));
+                    });
+                });
+            }
+
             setupEditPanel('btnEditProfile', 'btnCancelEdit', 'budgetProfileView', 'budgetProfileEdit');
             setupEditPanel('btnEditCategoryBudgets', 'btnCancelCategoryBudgets', 'categoryBudgetsView', 'categoryBudgetsEdit', resetCategoryFormFromView);
             setupCategoryBudgetValidation();
+            setupBudgetBreakdownColors();
 
             document.getElementById('btnSetCategoryBudgets')?.addEventListener('click', function () {
                 const panel = document.getElementById('categoryBudgetsPanel');
@@ -582,15 +569,11 @@ else
                 }, 450);
             });
 
-            @if (openCategoryBudgetEdit)
-            {
-                <text>
+            if (openCategoryBudgetEdit) {
                 document.getElementById('categoryBudgetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 document.getElementById('btnEditCategoryBudgets')?.click();
                 validateCategoryBudgetForm();
-                </text>
             }
         })();
     </script>
 }
-

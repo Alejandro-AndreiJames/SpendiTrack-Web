@@ -16,6 +16,7 @@ namespace SpendiTrackWeb.Models
         public bool HasBudgetSetup { get; set; }
         public decimal MonthlyIncome { get; set; }
         public decimal SavingsPercent { get; set; }
+        public decimal SavingsAmount { get; set; }
         public decimal FixedMonthlyCosts { get; set; }
         public decimal SpendingLimit { get; set; }
         public decimal RemainingBudget { get; set; }
@@ -28,5 +29,8 @@ namespace SpendiTrackWeb.Models
         public List<CategoryBudgetSummary> CategoryBudgets { get; set; } = new();
         public List<CategoryBudgetSummary> ActiveCategoryBudgets { get; set; } = new();
         public bool HasActiveCategoryAllocations => ActiveCategoryBudgets.Count > 0;
+
+        // R3 — budget breakdown
+        public List<BudgetBreakdownLine> BudgetBreakdown { get; set; } = new();
     }
 }
