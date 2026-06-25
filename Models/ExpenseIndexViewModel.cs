@@ -30,7 +30,17 @@ namespace SpendiTrackWeb.Models
         public List<CategoryBudgetSummary> ActiveCategoryBudgets { get; set; } = new();
         public bool HasActiveCategoryAllocations => ActiveCategoryBudgets.Count > 0;
 
-        // R3 — budget breakdown
+        // Budget breakdown
         public List<BudgetBreakdownLine> BudgetBreakdown { get; set; } = new();
+
+        // Add expense modal
+        public Expense? DraftExpense { get; set; }
+        public bool OpenAddExpenseModal { get; set; }
+
+        // View / edit expense modals
+        public Expense? ViewExpense { get; set; }
+        public bool OpenViewExpenseModal { get; set; }
+        public Expense? EditExpense { get; set; }
+        public bool OpenEditExpenseModal { get; set; }
     }
 }

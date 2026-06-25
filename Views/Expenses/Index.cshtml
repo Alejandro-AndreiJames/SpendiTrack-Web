@@ -1,8 +1,14 @@
 ﻿@model SpendiTrackWeb.Models.ExpenseIndexViewModel
+@using SpendiTrackWeb.Models
 
 @{
     ViewData["Title"] = "Expense Tracker";
     var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
+    var openAddExpenseModal = Model.OpenAddExpenseModal;
+    var expenseForModal = Model.DraftExpense ?? new Expense { Date = DateTime.Today };
+    var openEditExpenseModal = Model.OpenEditExpenseModal;
+    var editExpenseForModal = Model.EditExpense ?? new Expense { Date = DateTime.Today };
+    var openViewExpenseModal = Model.OpenViewExpenseModal;
 }
 
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
@@ -20,14 +26,19 @@
         </p>
     </div>
     <div class="action-links">
-        <a asp-action="Create" class="btn btn-gold">+ Add Expense</a>
-        <a asp-action="ShowSearchForm" class="btn btn-outline-gold">Search</a>
+        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+            + Add Expense
+        </button>
     </div>
 </div>
 
-<div class="tracker-page" data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()">
+<div class="tracker-page"
+     data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()"
+     data-open-add-expense-modal="@openAddExpenseModal.ToString().ToLowerInvariant()"
+     data-open-edit-expense-modal="@openEditExpenseModal.ToString().ToLowerInvariant()"
+     data-open-view-expense-modal="@openViewExpenseModal.ToString().ToLowerInvariant()">
 
-@if (!ViewData.ModelState.IsValid)
+@if (!ViewData.ModelState.IsValid && !Model.OpenAddExpenseModal && !Model.OpenEditExpenseModal)
 {
     <div class="tracker-alert" role="alert">
         <div asp-validation-summary="All"></div>
@@ -380,7 +391,9 @@
                     {
                         <div class="tracker-inline-empty">
                             <p class="mb-2">No transactions recorded yet.</p>
-                            <a asp-action="Create" class="btn btn-gold btn-sm">Add your first expense</a>
+                                <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                                    Add your first expense
+                                </button>
                         </div>
                     }
                 </div>
@@ -412,16 +425,26 @@ else
     <div class="empty-state">
         <h3>No expenses yet</h3>
         <p>Start tracking by adding your first expense.</p>
-        <a asp-action="Create" class="btn btn-gold mt-2">Add your first expense</a>
+            <button type="button" class="btn btn-gold mt-2" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                Add your first expense
+            </button>
     </div>
 }
-
+<partial name="_AddExpenseModal" model="expenseForModal" />
+<partial name="_EditExpenseModal" model="editExpenseForModal" />
+<partial name="_ViewExpenseModal" model="Model.ViewExpense" />
 </div>
 
 @section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
     <script>
         (function () {
             const openCategoryBudgetEdit = document.querySelector('.tracker-page')?.dataset.openCategoryBudgetEdit === 'true';
+            const openAddExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openAddExpenseModal === 'true';
+            const openEditExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openEditExpenseModal === 'true';
+            const openViewExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openViewExpenseModal === 'true';
 
             function formatMoney(value) {
                 return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(value);
@@ -511,6 +534,365 @@ else
                 validateCategoryBudgetForm();
             }
 
+            function setupSpendiSelects(root) {
+                (root || document).querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    if (wrap.dataset.spendiSelectReady === 'true') return;
+                    wrap.dataset.spendiSelectReady = 'true';
+
+                    const native = wrap.querySelector('.spendi-select__native');
+                    const trigger = wrap.querySelector('.spendi-select__trigger');
+                    const valueEl = wrap.querySelector('.spendi-select__value');
+                    const menu = wrap.querySelector('.spendi-select__menu');
+                    if (!native || !trigger || !valueEl || !menu) return;
+
+                    const placeholder = valueEl.dataset.placeholder || 'Select category';
+                    const options = menu.querySelectorAll('.spendi-select__option');
+
+                    function syncFromNative() {
+                        const val = native.value;
+                        if (!val) {
+                            valueEl.textContent = placeholder;
+                            valueEl.classList.add('is-placeholder');
+                        } else {
+                            valueEl.textContent = val;
+                            valueEl.classList.remove('is-placeholder');
+                        }
+                        options.forEach(function (opt) {
+                            opt.classList.toggle('is-selected', opt.dataset.value === val);
+                        });
+                    }
+
+                    function closeMenu() {
+                        menu.hidden = true;
+                        trigger.setAttribute('aria-expanded', 'false');
+                        wrap.classList.remove('is-open');
+                        options.forEach(function (opt) { opt.classList.remove('is-active'); });
+                    }
+
+                    function openMenu() {
+                        menu.hidden = false;
+                        trigger.setAttribute('aria-expanded', 'true');
+                        wrap.classList.add('is-open');
+                    }
+
+                    trigger.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        if (wrap.classList.contains('is-open')) {
+                            closeMenu();
+                        } else {
+                            openMenu();
+                        }
+                    });
+
+                    options.forEach(function (opt) {
+                        opt.addEventListener('mouseenter', function () {
+                            options.forEach(function (o) { o.classList.remove('is-active'); });
+                            opt.classList.add('is-active');
+                        });
+                        opt.addEventListener('click', function () {
+                            native.value = opt.dataset.value || '';
+                            native.dispatchEvent(new Event('change', { bubbles: true }));
+                            syncFromNative();
+                            closeMenu();
+                        });
+                    });
+
+                    document.addEventListener('click', function (e) {
+                        if (!wrap.contains(e.target)) closeMenu();
+                    });
+
+                    native.addEventListener('change', function () {
+                        syncFromNative();
+                        wrap.classList.toggle('is-invalid', native.classList.contains('input-validation-error'));
+                    });
+
+                    syncFromNative();
+                    wrap.classList.toggle('is-invalid', native.classList.contains('input-validation-error'));
+                });
+            }
+
+            function syncSpendiSelectValidation(form) {
+                if (!form) return;
+                const $form = window.jQuery ? jQuery(form) : null;
+                const validator = $form ? $form.data('validator') : null;
+
+                form.querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    const native = wrap.querySelector('.spendi-select__native');
+                    if (!native || !native.name) return;
+
+                    const msgEl = form.querySelector('span[data-valmsg-for="' + native.name + '"]');
+                    const hasErrorMsg = !!(msgEl
+                        && msgEl.classList.contains('field-validation-error')
+                        && msgEl.textContent.trim());
+                    const hasNativeError = native.classList.contains('input-validation-error');
+                    const hasValidatorError = !!(validator && validator.invalid && validator.invalid[native.name]);
+                    const isInvalid = hasErrorMsg || hasNativeError || hasValidatorError;
+
+                    wrap.classList.toggle('is-invalid', isInvalid);
+                    native.classList.toggle('input-validation-error', isInvalid);
+                });
+            }
+
+            function resetSpendiSelectDisplay(root) {
+                (root || document).querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    const native = wrap.querySelector('.spendi-select__native');
+                    const valueEl = wrap.querySelector('.spendi-select__value');
+                    const menu = wrap.querySelector('.spendi-select__menu');
+                    const trigger = wrap.querySelector('.spendi-select__trigger');
+                    if (!native || !valueEl) return;
+
+                    const placeholder = valueEl.dataset.placeholder || 'Select category';
+                    native.value = '';
+                    native.selectedIndex = 0;
+                    valueEl.textContent = placeholder;
+                    valueEl.classList.add('is-placeholder');
+                    wrap.classList.remove('is-invalid', 'is-open');
+                    native.classList.remove('input-validation-error');
+                    if (menu) menu.hidden = true;
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                    menu?.querySelectorAll('.spendi-select__option').forEach(function (opt) {
+                        opt.classList.remove('is-selected', 'is-active');
+                    });
+                });
+            }
+
+            function readExpenseData(source) {
+                return {
+                    id: source.dataset.expenseId,
+                    description: source.dataset.expenseDescription || '',
+                    amount: source.dataset.expenseAmount || '',
+                    date: source.dataset.expenseDate || '',
+                    category: source.dataset.expenseCategory || ''
+                };
+            }
+
+            function populateViewModal(data) {
+                const descEl = document.getElementById('viewExpenseDescription');
+                const amountEl = document.getElementById('viewExpenseAmount');
+                const dateEl = document.getElementById('viewExpenseDate');
+                const categoryEl = document.getElementById('viewExpenseCategory');
+                const btnEdit = document.getElementById('btnViewToEdit');
+
+                if (descEl) descEl.textContent = data.description;
+                if (amountEl) amountEl.textContent = formatMoney(parseFloat(data.amount) || 0);
+                if (dateEl) {
+                    const parsed = new Date(data.date + 'T00:00:00');
+                    dateEl.textContent = parsed.toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                if (categoryEl) categoryEl.textContent = data.category;
+
+                if (btnEdit) {
+                    btnEdit.dataset.expenseId = data.id;
+                    btnEdit.dataset.expenseDescription = data.description;
+                    btnEdit.dataset.expenseAmount = data.amount;
+                    btnEdit.dataset.expenseDate = data.date;
+                    btnEdit.dataset.expenseCategory = data.category;
+                }
+            }
+
+            function setSpendiSelectValue(modalEl, category) {
+                const native = modalEl?.querySelector('.spendi-select__native');
+                if (!native) return;
+                native.value = category || '';
+                native.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function populateEditModal(data) {
+                const form = document.getElementById('editExpenseForm');
+                const modalEl = document.getElementById('editExpenseModal');
+                if (!form || !modalEl) return;
+
+                form.querySelector('[name="Id"]').value = data.id;
+                const template = form.dataset.editUrl;
+                if (template) {
+                    form.action = template.replace('__id__', data.id);
+                }
+                form.querySelector('[name="Description"]').value = data.description;
+                form.querySelector('[name="Amount"]').value = data.amount;
+                form.querySelector('[name="Date"]').value = data.date;
+                setSpendiSelectValue(modalEl, data.category);
+                syncSpendiSelectValidation(form);
+            }
+
+            function resetExpenseForm(modalEl, form, options) {
+                options = options || {};
+                if (!form || !window.jQuery) return;
+
+                const $form = jQuery(form);
+                const validator = $form.data('validator');
+                if (validator) {
+                    validator.resetForm();
+                }
+
+                form.reset();
+
+                if (options.clearAmount) {
+                    const amountInput = form.querySelector('[name="Amount"]');
+                    if (amountInput) {
+                        amountInput.value = '';
+                    }
+                }
+
+                form.querySelectorAll('[data-valmsg-for]').forEach(function (el) {
+                    el.textContent = '';
+                    el.classList.remove('field-validation-error');
+                    el.classList.add('field-validation-valid');
+                });
+
+                form.querySelectorAll('.input-validation-error').forEach(function (el) {
+                    el.classList.remove('input-validation-error');
+                });
+
+                if (options.resetSelect) {
+                    resetSpendiSelectDisplay(modalEl);
+                }
+            }
+
+            function setupExpenseModalForm(modalEl, form, options) {
+                options = options || {};
+                if (!modalEl || !form || !window.jQuery) return;
+
+                const $form = jQuery(form);
+
+                function tuneValidator() {
+                    const validator = $form.data('validator');
+                    if (!validator) return;
+
+                    validator.settings.onfocusout = false;
+                    validator.settings.onfocusin = false;
+                    validator.settings.onclick = false;
+                    validator.settings.ignore = ':hidden:not(.spendi-select__native)';
+                    validator.settings.highlight = function (element) {
+                        jQuery(element).addClass('input-validation-error');
+                        syncSpendiSelectValidation(form);
+                    };
+                    validator.settings.unhighlight = function (element) {
+                        jQuery(element).removeClass('input-validation-error');
+                        syncSpendiSelectValidation(form);
+                    };
+                    validator.settings.onkeyup = function (element) {
+                        if (element.name === 'Amount' && element.value === '') {
+                            jQuery(element).removeClass('input-validation-error');
+                            jQuery(form).find('span[data-valmsg-for="Amount"]').text('').removeClass('field-validation-error');
+                        } else {
+                            jQuery(element).valid();
+                        }
+                        syncSpendiSelectValidation(form);
+                    };
+                }
+
+                if ($form.data('validator')) {
+                    tuneValidator();
+                } else {
+                    $form.on('submit.validate', tuneValidator);
+                }
+
+                $form.on('invalid-form.validate', function () {
+                    setTimeout(function () {
+                        syncSpendiSelectValidation(form);
+                    }, 0);
+                });
+
+                setTimeout(tuneValidator, 0);
+
+                form.addEventListener('input', function (e) {
+                    if (e.target && e.target.classList.contains('input-validation-error')) {
+                        jQuery(e.target).valid();
+                    }
+                    syncSpendiSelectValidation(form);
+                });
+
+                form.addEventListener('change', function (e) {
+                    if (e.target && e.target.classList.contains('spendi-select__native')) {
+                        jQuery(e.target).valid();
+                    }
+                    syncSpendiSelectValidation(form);
+                });
+
+                modalEl.addEventListener('show.bs.modal', function () {
+                    if (modalEl.dataset.preserveExpenseDraft === 'true') {
+                        delete modalEl.dataset.preserveExpenseDraft;
+                        setupSpendiSelects(modalEl);
+                        syncSpendiSelectValidation(form);
+                        return;
+                    }
+                    if (typeof options.onReset === 'function') {
+                        options.onReset();
+                    }
+                });
+            }
+
+            function setupExpenseListActions() {
+                const list = document.querySelector('.expense-list');
+                if (!list) return;
+
+                list.addEventListener('click', function (e) {
+                    const actionBtn = e.target.closest('[data-expense-action]');
+                    if (!actionBtn) return;
+
+                    const card = actionBtn.closest('[data-expense-id]');
+                    if (!card) return;
+
+                    const data = readExpenseData(card);
+                    const action = actionBtn.dataset.expenseAction;
+
+                    if (action === 'view') {
+                        populateViewModal(data);
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('viewExpenseModal')).show();
+                        return;
+                    }
+
+                    if (action === 'edit') {
+                        const editModal = document.getElementById('editExpenseModal');
+                        const editForm = document.getElementById('editExpenseForm');
+                        resetExpenseForm(editModal, editForm, { resetSelect: true });
+                        populateEditModal(data);
+                        editModal.dataset.preserveExpenseDraft = 'true';
+                        bootstrap.Modal.getOrCreateInstance(editModal).show();
+                    }
+                });
+
+                document.getElementById('btnViewToEdit')?.addEventListener('click', function () {
+                    const btn = this;
+                    const data = {
+                        id: btn.dataset.expenseId,
+                        description: btn.dataset.expenseDescription,
+                        amount: btn.dataset.expenseAmount,
+                        date: btn.dataset.expenseDate,
+                        category: btn.dataset.expenseCategory
+                    };
+                    bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal'))?.hide();
+                    const editModal = document.getElementById('editExpenseModal');
+                    const editForm = document.getElementById('editExpenseForm');
+                    resetExpenseForm(editModal, editForm, { resetSelect: true });
+                    populateEditModal(data);
+                    editModal.dataset.preserveExpenseDraft = 'true';
+                    setTimeout(function () {
+                        bootstrap.Modal.getOrCreateInstance(editModal).show();
+                    }, 300);
+                });
+            }
+
+            function setupAddExpenseForm() {
+                const addModal = document.getElementById('addExpenseModal');
+                const addForm = document.getElementById('addExpenseForm');
+                setupExpenseModalForm(addModal, addForm, {
+                    onReset: function () {
+                        resetExpenseForm(addModal, addForm, { clearAmount: true, resetSelect: true });
+                    }
+                });
+            }
+
+            function setupEditExpenseForm() {
+                const editModal = document.getElementById('editExpenseModal');
+                const editForm = document.getElementById('editExpenseForm');
+                setupExpenseModalForm(editModal, editForm, {});
+            }
+
             function setupBudgetBreakdownColors() {
                 const panel = document.querySelector('.budget-breakdown');
                 if (!panel) return;
@@ -560,6 +942,11 @@ else
             setupEditPanel('btnEditCategoryBudgets', 'btnCancelCategoryBudgets', 'categoryBudgetsView', 'categoryBudgetsEdit', resetCategoryFormFromView);
             setupCategoryBudgetValidation();
             setupBudgetBreakdownColors();
+            setupSpendiSelects(document.getElementById('addExpenseModal'));
+            setupSpendiSelects(document.getElementById('editExpenseModal'));
+            setupAddExpenseForm();
+            setupEditExpenseForm();
+            setupExpenseListActions();
 
             document.getElementById('btnSetCategoryBudgets')?.addEventListener('click', function () {
                 const panel = document.getElementById('categoryBudgetsPanel');
@@ -573,6 +960,29 @@ else
                 document.getElementById('categoryBudgetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 document.getElementById('btnEditCategoryBudgets')?.click();
                 validateCategoryBudgetForm();
+            }
+            // Open add expense modal if flag is set
+            if (openAddExpenseModalFlag) {
+                const modalEl = document.getElementById('addExpenseModal');
+                if (modalEl) {
+                    modalEl.dataset.preserveExpenseDraft = 'true';
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openEditExpenseModalFlag) {
+                const modalEl = document.getElementById('editExpenseModal');
+                if (modalEl) {
+                    modalEl.dataset.preserveExpenseDraft = 'true';
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openViewExpenseModalFlag) {
+                const modalEl = document.getElementById('viewExpenseModal');
+                if (modalEl) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
             }
         })();
     </script>

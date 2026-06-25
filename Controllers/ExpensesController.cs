@@ -28,13 +28,7 @@ namespace SpendiTrackWeb.Controllers
         // GET: Expenses
         public async Task<IActionResult> Index()
         {
-            var expenses = await GetUserExpensesOrderedAsync();
-            var model = BuildIndexViewModel(expenses);
-
-            await ApplyBudgetToModelAsync(model);
-            await ApplyCategoryBudgetsToModelAsync(model, expenses);
-            ApplyBudgetBreakdownToModel(model);
-
+            var model = await LoadIndexViewModelAsync();
             return View(model);
         }
 
@@ -105,12 +99,7 @@ namespace SpendiTrackWeb.Controllers
             if (input.Categories == null || input.Categories.Count == 0)
             {
                 ModelState.AddModelError(string.Empty, "No category budget data was submitted.");
-                var expenses = await GetUserExpensesOrderedAsync();
-                var errorModel = BuildIndexViewModel(expenses);
-
-                await ApplyBudgetToModelAsync(errorModel);
-                await ApplyCategoryBudgetsToModelAsync(errorModel, expenses);
-                ApplyBudgetBreakdownToModel(errorModel); 
+                var errorModel = await LoadIndexViewModelAsync();
                 return View("Index", errorModel);
             }
 
@@ -127,14 +116,9 @@ namespace SpendiTrackWeb.Controllers
                 ModelState.AddModelError(string.Empty,
                     $"Total allocations ({totalAllocated:C}) cannot exceed your spending limit ({limit:C}).");
 
-                var expenses = await GetUserExpensesOrderedAsync();
-                var model = BuildIndexViewModel(expenses);
-
-                await ApplyBudgetToModelAsync(model);
-                await ApplyCategoryBudgetsToModelAsync(model, expenses);
+                var model = await LoadIndexViewModelAsync();
                 ApplySubmittedCategoryForm(model, input.Categories);
                 TempData["OpenCategoryBudgetEdit"] = true;
-                ApplyBudgetBreakdownToModel(model);
 
                 return View("Index", model);
             }
@@ -184,12 +168,8 @@ namespace SpendiTrackWeb.Controllers
                 .OrderByDescending(e => e.Date)
                 .ToListAsync();
 
-            var model = BuildIndexViewModel(expenses);
+            var model = await LoadIndexViewModelAsync(expenses);
             model.SearchPhrase = searchPhrase;
-
-            await ApplyBudgetToModelAsync(model);
-            await ApplyCategoryBudgetsToModelAsync(model, expenses);
-            ApplyBudgetBreakdownToModel(model);
 
             return View("Index", model);
         }
@@ -208,13 +188,16 @@ namespace SpendiTrackWeb.Controllers
                 return NotFound();
             }
 
-            return View(expense);
+            var model = await LoadIndexViewModelAsync();
+            model.ViewExpense = expense;
+            model.OpenViewExpenseModal = true;
+            return View("Index", model);
         }
 
         // GET: Expenses/Create
         public IActionResult Create()
         {
-            return View(new Expense { Date = DateTime.Today });
+            return RedirectToAction(nameof(Index));
         }
 
         // POST: Expenses/Create
@@ -237,7 +220,7 @@ namespace SpendiTrackWeb.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(expense);
+            return await IndexWithDraftAsync(expense);
         }
 
         // GET: Expenses/Edit/5
@@ -253,7 +236,11 @@ namespace SpendiTrackWeb.Controllers
             {
                 return NotFound();
             }
-            return View(expense);
+
+            var model = await LoadIndexViewModelAsync();
+            model.EditExpense = expense;
+            model.OpenEditExpenseModal = true;
+            return View("Index", model);
         }
 
         // POST: Expenses/Edit/5
@@ -300,7 +287,7 @@ namespace SpendiTrackWeb.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(expense);
+            return await IndexWithEditDraftAsync(expense);
         }
 
         // GET: Expenses/Delete/5
@@ -466,6 +453,36 @@ namespace SpendiTrackWeb.Controllers
                 income,
                 model.TotalAllocated,
                 model.MonthlyTotal);
+        }
+
+        private async Task<ExpenseIndexViewModel> LoadIndexViewModelAsync(List<Expense>? expenses = null)
+        {
+            expenses ??= await GetUserExpensesOrderedAsync();
+            var model = BuildIndexViewModel(expenses);
+
+            await ApplyBudgetToModelAsync(model);
+            await ApplyCategoryBudgetsToModelAsync(model, expenses);
+            ApplyBudgetBreakdownToModel(model);
+
+            return model;
+        }
+
+        private async Task<IActionResult> IndexWithEditDraftAsync(Expense expense)
+        {
+            var model = await LoadIndexViewModelAsync();
+            model.EditExpense = expense;
+            model.OpenEditExpenseModal = true;
+
+            return View("Index", model);
+        }
+
+        private async Task<IActionResult> IndexWithDraftAsync(Expense expense)
+        {
+            var model = await LoadIndexViewModelAsync();
+            model.DraftExpense = expense;
+            model.OpenAddExpenseModal = true;
+
+            return View("Index", model);
         }
 
         private static void ApplySubmittedCategoryForm(

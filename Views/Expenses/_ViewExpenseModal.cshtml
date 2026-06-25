@@ -1,0 +1,46 @@
+@model SpendiTrackWeb.Models.Expense?
+
+<div class="modal fade" id="viewExpenseModal" tabindex="-1" aria-labelledby="viewExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered expense-modal__dialog">
+        <div class="modal-content expense-modal">
+            <div class="modal-header">
+                <h2 class="modal-title h5 mb-0" id="viewExpenseModalLabel" style="color: var(--gold);">Expense details</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="expense-detail-field">
+                    <span class="expense-detail-label">Description</span>
+                    <p class="expense-detail-value" id="viewExpenseDescription">@(Model?.Description)</p>
+                </div>
+                <div class="expense-detail-field">
+                    <span class="expense-detail-label">Amount</span>
+                    <p class="expense-detail-value expense-detail-value--amount" id="viewExpenseAmount">
+                        @(Model != null ? Model.Amount.ToString("C") : "")
+                    </p>
+                </div>
+                <div class="expense-detail-field">
+                    <span class="expense-detail-label">Date</span>
+                    <p class="expense-detail-value" id="viewExpenseDate">
+                        @(Model?.Date.ToString("MMMM d, yyyy"))
+                    </p>
+                </div>
+                <div class="expense-detail-field expense-detail-field--last">
+                    <span class="expense-detail-label">Category</span>
+                    <p class="expense-detail-value" id="viewExpenseCategory">@(Model?.Category)</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-gold" data-bs-dismiss="modal">Close</button>
+                <button type="button"
+                        class="btn btn-gold"
+                        id="btnViewToEdit"
+                        data-expense-edit
+                        data-expense-id="@Model?.Id"
+                        data-expense-description="@Model?.Description"
+                        data-expense-amount="@(Model != null ? Model.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
+                        data-expense-date="@(Model?.Date.ToString("yyyy-MM-dd"))"
+                        data-expense-category="@Model?.Category">Edit expense</button>
+            </div>
+        </div>
+    </div>
+</div>
