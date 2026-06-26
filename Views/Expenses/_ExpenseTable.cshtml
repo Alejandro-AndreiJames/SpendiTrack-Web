@@ -1,9 +1,15 @@
 @model IEnumerable<SpendiTrackWeb.Models.Expense>
+@using System.Globalization
 
 <div class="expense-list">
     @foreach (var item in Model)
     {
-        <article class="expense-card">
+        <article class="expense-card"
+                 data-expense-id="@item.Id"
+                 data-expense-description="@item.Description"
+                 data-expense-amount="@item.Amount.ToString(CultureInfo.InvariantCulture)"
+                 data-expense-date="@item.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)"
+                 data-expense-category="@item.Category">
             <div class="expense-card__body">
                 <h3 class="expense-card__title">@item.Description</h3>
                 <div class="expense-card__meta">
@@ -15,9 +21,9 @@
             <div class="expense-card__aside">
                 <span class="expense-card__amount">@item.Amount.ToString("C")</span>
                 <div class="expense-card__actions">
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-gold">View</a>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-gold">Edit</a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger-soft">Delete</a>
+                    <button type="button" class="btn btn-sm btn-outline-gold" data-expense-action="view">View</button>
+                    <button type="button" class="btn btn-sm btn-outline-gold" data-expense-action="edit">Edit</button>
+                    <button type="button" class="btn btn-sm btn-danger-soft" data-expense-action="delete">Delete</button>
                 </div>
             </div>
         </article>

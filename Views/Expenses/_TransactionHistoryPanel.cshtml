@@ -1,0 +1,70 @@
+@model SpendiTrackWeb.Models.ExpenseIndexViewModel
+
+@{
+    var isSearchActive = !string.IsNullOrWhiteSpace(Model.SearchPhrase);
+    var resultCount = Model.Expenses.Count();
+}
+
+<div class="form-panel tracker-activity-panel">
+    <div class="tracker-section-header tracker-section-header--with-search">
+        <div class="tracker-section-header__copy">
+            <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
+            @if (isSearchActive)
+            {
+                <p class="help-text mb-0 tracker-history-search__status">
+                    Results for &ldquo;@Model.SearchPhrase&rdquo;
+                    (@resultCount @(resultCount == 1 ? "match" : "matches"))
+                </p>
+            }
+            else
+            {
+                <p class="help-text mb-0">Search by description or browse your expenses, newest first.</p>
+            }
+        </div>
+        @if (!isSearchActive && Model.Expenses.Any())
+        {
+            <span class="tracker-section-header__badge">@Model.TransactionCount</span>
+        }
+    </div>
+
+    <form class="tracker-history-search"
+          data-tracker-search-form
+          role="search">
+        <label class="visually-hidden" for="trackerSearchPhrase">Search expenses</label>
+        <input type="search"
+               name="searchPhrase"
+               id="trackerSearchPhrase"
+               class="tracker-history-search__input form-control"
+               placeholder="Search by description…"
+               value="@Model.SearchPhrase"
+               autocomplete="off"
+               maxlength="200" />
+        <button type="submit" class="btn btn-gold btn-sm tracker-history-search__submit">Search</button>
+        @if (isSearchActive)
+        {
+            <button type="button" class="btn btn-outline-gold btn-sm tracker-history-search__clear" data-tracker-search-clear>Clear</button>
+        }
+    </form>
+
+    <div class="tracker-activity-panel__scroll">
+        @if (Model.Expenses.Any())
+        {
+            @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
+        }
+        else if (isSearchActive)
+        {
+            <div class="tracker-inline-empty tracker-inline-empty--fill">
+                <p class="mb-0">No expenses match &ldquo;@Model.SearchPhrase&rdquo;.</p>
+            </div>
+        }
+        else
+        {
+            <div class="tracker-inline-empty tracker-inline-empty--fill">
+                <p class="mb-2">No transactions recorded yet.</p>
+                <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                    Add your first expense
+                </button>
+            </div>
+        }
+    </div>
+</div>

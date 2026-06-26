@@ -1,33 +1,37 @@
 ﻿@model SpendiTrackWeb.Models.ExpenseIndexViewModel
+@using SpendiTrackWeb.Models
 
 @{
     ViewData["Title"] = "Expense Tracker";
     var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
+    var openAddExpenseModal = Model.OpenAddExpenseModal;
+    var expenseForModal = Model.DraftExpense ?? new Expense { Date = DateTime.Today };
+    var openEditExpenseModal = Model.OpenEditExpenseModal;
+    var editExpenseForModal = Model.EditExpense ?? new Expense { Date = DateTime.Today };
+    var openViewExpenseModal = Model.OpenViewExpenseModal;
+    var openDeleteExpenseModal = Model.OpenDeleteExpenseModal;
 }
 
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div>
         <h1>Expense Tracker</h1>
-        <p class="lead">
-            @if (!string.IsNullOrWhiteSpace(Model.SearchPhrase))
-            {
-                <text>Results for &ldquo;@Model.SearchPhrase&rdquo;</text>
-            }
-            else
-            {
-                <text>All your recorded spending in one place.</text>
-            }
-        </p>
+        <p class="lead">All your recorded spending in one place.</p>
     </div>
     <div class="action-links">
-        <a asp-action="Create" class="btn btn-gold">+ Add Expense</a>
-        <a asp-action="ShowSearchForm" class="btn btn-outline-gold">Search</a>
+        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+            + Add Expense
+        </button>
     </div>
 </div>
 
-<div class="tracker-page" data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()">
+<div class="tracker-page"
+     data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()"
+     data-open-add-expense-modal="@openAddExpenseModal.ToString().ToLowerInvariant()"
+     data-open-edit-expense-modal="@openEditExpenseModal.ToString().ToLowerInvariant()"
+     data-open-view-expense-modal="@openViewExpenseModal.ToString().ToLowerInvariant()"
+     data-open-delete-expense-modal="@openDeleteExpenseModal.ToString().ToLowerInvariant()">
 
-@if (!ViewData.ModelState.IsValid)
+@if (!ViewData.ModelState.IsValid && !Model.OpenAddExpenseModal && !Model.OpenEditExpenseModal)
 {
     <div class="tracker-alert" role="alert">
         <div asp-validation-summary="All"></div>
@@ -81,13 +85,13 @@
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">Spent this month</div>
-                <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
+                <div class="stat-value" data-stat="spent-month">@Model.MonthlyTotal.ToString("C")</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card stat-card--highlight@(Model.RemainingBudget < 0 ? " stat-card--over" : "")">
                 <div class="stat-label">Remaining</div>
-                <div class="stat-value">@Model.RemainingBudget.ToString("C")</div>
+                <div class="stat-value" data-stat="remaining">@Model.RemainingBudget.ToString("C")</div>
             </div>
         </div>
     }
@@ -96,25 +100,25 @@
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">Total spent</div>
-                <div class="stat-value">@Model.TotalAmount.ToString("C")</div>
+                <div class="stat-value" data-stat="total-spent">@Model.TotalAmount.ToString("C")</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">This month</div>
-                <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
+                <div class="stat-value" data-stat="spent-month">@Model.MonthlyTotal.ToString("C")</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">Transactions</div>
-                <div class="stat-value">@Model.TransactionCount</div>
+                <div class="stat-value" data-stat="transaction-count">@Model.TransactionCount</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">Average</div>
-                <div class="stat-value">@Model.AverageAmount.ToString("C")</div>
+                <div class="stat-value" data-stat="average">@Model.AverageAmount.ToString("C")</div>
             </div>
         </div>
     }
@@ -359,69 +363,39 @@
 {
     <div class="row g-3 tracker-activity">
         <div class="col-lg-7">
-            <div class="form-panel tracker-activity-panel">
-                <div class="tracker-section-header">
-                    <div>
-                        <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
-                        <p class="help-text mb-0">Your recorded expenses, newest first.</p>
-                    </div>
-                    @if (Model.Expenses.Any())
-                    {
-                        <span class="tracker-section-header__badge">@Model.TransactionCount</span>
-                    }
-                </div>
-
-                <div class="tracker-activity-panel__scroll">
-                    @if (Model.Expenses.Any())
-                    {
-                        @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
-                    }
-                    else
-                    {
-                        <div class="tracker-inline-empty">
-                            <p class="mb-2">No transactions recorded yet.</p>
-                            <a asp-action="Create" class="btn btn-gold btn-sm">Add your first expense</a>
-                        </div>
-                    }
-                </div>
+            <div id="transactionHistoryHost">
+                @await Html.PartialAsync("_TransactionHistoryPanel", Model)
             </div>
         </div>
-
-        <div class="col-lg-5">
+        <div class="col-lg-5" id="categoryUtilizationHost">
             @await Html.PartialAsync("_CategoryUtilization", Model)
-        </div>
-    </div>
-}
-else if (Model.Expenses.Any())
-{
-    <div class="form-panel tracker-activity-panel">
-        <div class="tracker-section-header">
-            <div>
-                <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
-                <p class="help-text mb-0">Your recorded expenses, newest first.</p>
-            </div>
-            <span class="tracker-section-header__badge">@Model.TransactionCount</span>
-        </div>
-        <div class="tracker-activity-panel__scroll">
-            @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
         </div>
     </div>
 }
 else
 {
-    <div class="empty-state">
-        <h3>No expenses yet</h3>
-        <p>Start tracking by adding your first expense.</p>
-        <a asp-action="Create" class="btn btn-gold mt-2">Add your first expense</a>
+    <div id="transactionHistoryHost">
+        @await Html.PartialAsync("_TransactionHistoryPanel", Model)
     </div>
 }
-
 </div>
 
+<partial name="_AddExpenseModal" model="expenseForModal" />
+<partial name="_EditExpenseModal" model="editExpenseForModal" />
+<partial name="_ViewExpenseModal" model="Model.ViewExpense" />
+<partial name="_DeleteExpenseModal" model="Model.DeleteExpense" />
+
 @section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
     <script>
         (function () {
             const openCategoryBudgetEdit = document.querySelector('.tracker-page')?.dataset.openCategoryBudgetEdit === 'true';
+            const openAddExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openAddExpenseModal === 'true';
+            const openEditExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openEditExpenseModal === 'true';
+            const openViewExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openViewExpenseModal === 'true';
+            const openDeleteExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openDeleteExpenseModal === 'true';
 
             function formatMoney(value) {
                 return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(value);
@@ -511,6 +485,672 @@ else
                 validateCategoryBudgetForm();
             }
 
+            function setupSpendiSelects(root) {
+                (root || document).querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    if (wrap.dataset.spendiSelectReady === 'true') return;
+                    wrap.dataset.spendiSelectReady = 'true';
+
+                    const native = wrap.querySelector('.spendi-select__native');
+                    const trigger = wrap.querySelector('.spendi-select__trigger');
+                    const valueEl = wrap.querySelector('.spendi-select__value');
+                    const menu = wrap.querySelector('.spendi-select__menu');
+                    if (!native || !trigger || !valueEl || !menu) return;
+
+                    const placeholder = valueEl.dataset.placeholder || 'Select category';
+                    const options = menu.querySelectorAll('.spendi-select__option');
+
+                    function syncFromNative() {
+                        const val = native.value;
+                        if (!val) {
+                            valueEl.textContent = placeholder;
+                            valueEl.classList.add('is-placeholder');
+                        } else {
+                            valueEl.textContent = val;
+                            valueEl.classList.remove('is-placeholder');
+                        }
+                        options.forEach(function (opt) {
+                            opt.classList.toggle('is-selected', opt.dataset.value === val);
+                        });
+                    }
+
+                    function closeMenu() {
+                        menu.hidden = true;
+                        trigger.setAttribute('aria-expanded', 'false');
+                        wrap.classList.remove('is-open');
+                        options.forEach(function (opt) { opt.classList.remove('is-active'); });
+                    }
+
+                    function openMenu() {
+                        menu.hidden = false;
+                        trigger.setAttribute('aria-expanded', 'true');
+                        wrap.classList.add('is-open');
+                    }
+
+                    trigger.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        if (wrap.classList.contains('is-open')) {
+                            closeMenu();
+                        } else {
+                            openMenu();
+                        }
+                    });
+
+                    options.forEach(function (opt) {
+                        opt.addEventListener('mouseenter', function () {
+                            options.forEach(function (o) { o.classList.remove('is-active'); });
+                            opt.classList.add('is-active');
+                        });
+                        opt.addEventListener('click', function () {
+                            native.value = opt.dataset.value || '';
+                            native.dispatchEvent(new Event('change', { bubbles: true }));
+                            syncFromNative();
+                            closeMenu();
+                        });
+                    });
+
+                    document.addEventListener('click', function (e) {
+                        if (!wrap.contains(e.target)) closeMenu();
+                    });
+
+                    native.addEventListener('change', function () {
+                        syncFromNative();
+                        wrap.classList.toggle('is-invalid', native.classList.contains('input-validation-error'));
+                    });
+
+                    syncFromNative();
+                    wrap.classList.toggle('is-invalid', native.classList.contains('input-validation-error'));
+                });
+            }
+
+            function syncSpendiSelectValidation(form) {
+                if (!form) return;
+                const $form = window.jQuery ? jQuery(form) : null;
+                const validator = $form ? $form.data('validator') : null;
+
+                form.querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    const native = wrap.querySelector('.spendi-select__native');
+                    if (!native || !native.name) return;
+
+                    const msgEl = form.querySelector('span[data-valmsg-for="' + native.name + '"]');
+                    const hasErrorMsg = !!(msgEl
+                        && msgEl.classList.contains('field-validation-error')
+                        && msgEl.textContent.trim());
+                    const hasNativeError = native.classList.contains('input-validation-error');
+                    const hasValidatorError = !!(validator && validator.invalid && validator.invalid[native.name]);
+                    const isInvalid = hasErrorMsg || hasNativeError || hasValidatorError;
+
+                    wrap.classList.toggle('is-invalid', isInvalid);
+                    native.classList.toggle('input-validation-error', isInvalid);
+                });
+            }
+
+            function resetSpendiSelectDisplay(root) {
+                (root || document).querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    const native = wrap.querySelector('.spendi-select__native');
+                    const valueEl = wrap.querySelector('.spendi-select__value');
+                    const menu = wrap.querySelector('.spendi-select__menu');
+                    const trigger = wrap.querySelector('.spendi-select__trigger');
+                    if (!native || !valueEl) return;
+
+                    const placeholder = valueEl.dataset.placeholder || 'Select category';
+                    native.value = '';
+                    native.selectedIndex = 0;
+                    valueEl.textContent = placeholder;
+                    valueEl.classList.add('is-placeholder');
+                    wrap.classList.remove('is-invalid', 'is-open');
+                    native.classList.remove('input-validation-error');
+                    if (menu) menu.hidden = true;
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                    menu?.querySelectorAll('.spendi-select__option').forEach(function (opt) {
+                        opt.classList.remove('is-selected', 'is-active');
+                    });
+                });
+            }
+
+            function readExpenseData(source) {
+                return {
+                    id: source.dataset.expenseId,
+                    description: source.dataset.expenseDescription || '',
+                    amount: source.dataset.expenseAmount || '',
+                    date: source.dataset.expenseDate || '',
+                    category: source.dataset.expenseCategory || ''
+                };
+            }
+
+            let editExpenseSnapshot = null;
+
+            function normalizeExpenseAmount(value) {
+                const parsed = parseFloat(value);
+                return Number.isNaN(parsed) ? '' : parsed.toFixed(2);
+            }
+
+            function captureEditExpenseSnapshot(form) {
+                if (!form) return null;
+                return {
+                    description: (form.querySelector('[name="Description"]')?.value || '').trim(),
+                    amount: normalizeExpenseAmount(form.querySelector('[name="Amount"]')?.value || ''),
+                    date: form.querySelector('[name="Date"]')?.value || '',
+                    category: form.querySelector('[name="Category"]')?.value || ''
+                };
+            }
+
+            function hasEditExpenseChanges(form) {
+                if (!form || !editExpenseSnapshot) return true;
+                const current = captureEditExpenseSnapshot(form);
+                return current.description !== editExpenseSnapshot.description
+                    || current.amount !== editExpenseSnapshot.amount
+                    || current.date !== editExpenseSnapshot.date
+                    || current.category !== editExpenseSnapshot.category;
+            }
+
+            function showEditNoChangesNotice() {
+                const notice = document.getElementById('editExpenseNoChangesNotice');
+                if (notice) notice.hidden = false;
+            }
+
+            function hideEditNoChangesNotice() {
+                const notice = document.getElementById('editExpenseNoChangesNotice');
+                if (notice) notice.hidden = true;
+            }
+
+            function refreshEditExpenseSnapshot(form) {
+                editExpenseSnapshot = captureEditExpenseSnapshot(form);
+                hideEditNoChangesNotice();
+            }
+
+            function populateViewModal(data) {
+                const descEl = document.getElementById('viewExpenseDescription');
+                const amountEl = document.getElementById('viewExpenseAmount');
+                const dateEl = document.getElementById('viewExpenseDate');
+                const categoryEl = document.getElementById('viewExpenseCategory');
+                const btnEdit = document.getElementById('btnViewToEdit');
+
+                if (descEl) descEl.textContent = data.description;
+                if (amountEl) amountEl.textContent = formatMoney(parseFloat(data.amount) || 0);
+                if (dateEl) {
+                    const parsed = new Date(data.date + 'T00:00:00');
+                    dateEl.textContent = parsed.toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                if (categoryEl) categoryEl.textContent = data.category;
+
+                if (btnEdit) {
+                    btnEdit.dataset.expenseId = data.id;
+                    btnEdit.dataset.expenseDescription = data.description;
+                    btnEdit.dataset.expenseAmount = data.amount;
+                    btnEdit.dataset.expenseDate = data.date;
+                    btnEdit.dataset.expenseCategory = data.category;
+                }
+            }
+
+            function populateDeleteModal(data) {
+                const idInput = document.getElementById('DeleteExpense_Id');
+                const descEl = document.getElementById('deleteExpenseDescription');
+                const amountEl = document.getElementById('deleteExpenseAmount');
+                const dateEl = document.getElementById('deleteExpenseDate');
+                const categoryEl = document.getElementById('deleteExpenseCategory');
+
+                if (idInput) idInput.value = data.id;
+                if (descEl) descEl.textContent = data.description;
+                if (amountEl) amountEl.textContent = formatMoney(parseFloat(data.amount) || 0);
+                if (dateEl) {
+                    const parsed = new Date(data.date + 'T00:00:00');
+                    dateEl.textContent = parsed.toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                if (categoryEl) categoryEl.textContent = data.category;
+            }
+
+            function setSpendiSelectValue(modalEl, category) {
+                const native = modalEl?.querySelector('.spendi-select__native');
+                if (!native) return;
+                native.value = category || '';
+                native.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function populateEditModal(data) {
+                const form = document.getElementById('editExpenseForm');
+                const modalEl = document.getElementById('editExpenseModal');
+                if (!form || !modalEl) return;
+
+                form.querySelector('[name="Id"]').value = data.id;
+                const template = form.dataset.editUrl;
+                if (template) {
+                    form.action = template.replace('__id__', data.id);
+                }
+                form.querySelector('[name="Description"]').value = data.description;
+                form.querySelector('[name="Amount"]').value = data.amount;
+                form.querySelector('[name="Date"]').value = data.date;
+                setSpendiSelectValue(modalEl, data.category);
+                syncSpendiSelectValidation(form);
+            }
+
+            function resetExpenseForm(modalEl, form, options) {
+                options = options || {};
+                if (!form || !window.jQuery) return;
+
+                const $form = jQuery(form);
+                const validator = $form.data('validator');
+                if (validator) {
+                    validator.resetForm();
+                }
+
+                form.reset();
+
+                if (options.clearAmount) {
+                    const amountInput = form.querySelector('[name="Amount"]');
+                    if (amountInput) {
+                        amountInput.value = '';
+                    }
+                }
+
+                form.querySelectorAll('[data-valmsg-for]').forEach(function (el) {
+                    el.textContent = '';
+                    el.classList.remove('field-validation-error');
+                    el.classList.add('field-validation-valid');
+                });
+
+                form.querySelectorAll('.input-validation-error').forEach(function (el) {
+                    el.classList.remove('input-validation-error');
+                });
+
+                if (options.resetSelect) {
+                    resetSpendiSelectDisplay(modalEl);
+                }
+            }
+
+            function setupExpenseModalForm(modalEl, form, options) {
+                options = options || {};
+                if (!modalEl || !form || !window.jQuery) return;
+
+                const $form = jQuery(form);
+
+                function tuneValidator() {
+                    const validator = $form.data('validator');
+                    if (!validator) return;
+
+                    validator.settings.onfocusout = false;
+                    validator.settings.onfocusin = false;
+                    validator.settings.onclick = false;
+                    validator.settings.ignore = ':hidden:not(.spendi-select__native)';
+                    validator.settings.highlight = function (element) {
+                        jQuery(element).addClass('input-validation-error');
+                        syncSpendiSelectValidation(form);
+                    };
+                    validator.settings.unhighlight = function (element) {
+                        jQuery(element).removeClass('input-validation-error');
+                        syncSpendiSelectValidation(form);
+                    };
+                    validator.settings.onkeyup = function (element) {
+                        if (element.name === 'Amount' && element.value === '') {
+                            jQuery(element).removeClass('input-validation-error');
+                            jQuery(form).find('span[data-valmsg-for="Amount"]').text('').removeClass('field-validation-error');
+                        } else {
+                            jQuery(element).valid();
+                        }
+                        syncSpendiSelectValidation(form);
+                    };
+                }
+
+                if ($form.data('validator')) {
+                    tuneValidator();
+                } else {
+                    $form.on('submit.validate', tuneValidator);
+                }
+
+                $form.on('invalid-form.validate', function () {
+                    setTimeout(function () {
+                        syncSpendiSelectValidation(form);
+                    }, 0);
+                });
+
+                setTimeout(tuneValidator, 0);
+
+                form.addEventListener('input', function (e) {
+                    if (e.target && e.target.classList.contains('input-validation-error')) {
+                        jQuery(e.target).valid();
+                    }
+                    syncSpendiSelectValidation(form);
+                });
+
+                form.addEventListener('change', function (e) {
+                    if (e.target && e.target.classList.contains('spendi-select__native')) {
+                        jQuery(e.target).valid();
+                    }
+                    syncSpendiSelectValidation(form);
+                });
+
+                modalEl.addEventListener('show.bs.modal', function () {
+                    if (modalEl.dataset.preserveExpenseDraft === 'true') {
+                        delete modalEl.dataset.preserveExpenseDraft;
+                        setupSpendiSelects(modalEl);
+                        syncSpendiSelectValidation(form);
+                        if (typeof options.onAfterOpen === 'function') {
+                            options.onAfterOpen();
+                        }
+                        return;
+                    }
+                    if (typeof options.onReset === 'function') {
+                        options.onReset();
+                    }
+                });
+            }
+
+            function setupExpenseListActions() {
+                const trackerPage = document.querySelector('.tracker-page');
+                if (!trackerPage) return;
+
+                trackerPage.addEventListener('click', function (e) {
+                    const actionBtn = e.target.closest('[data-expense-action]');
+                    if (!actionBtn) return;
+
+                    const card = actionBtn.closest('[data-expense-id]');
+                    if (!card) return;
+
+                    const data = readExpenseData(card);
+                    const action = actionBtn.dataset.expenseAction;
+
+                    if (action === 'view') {
+                        populateViewModal(data);
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('viewExpenseModal')).show();
+                        return;
+                    }
+
+                    if (action === 'edit') {
+                        const editModal = document.getElementById('editExpenseModal');
+                        const editForm = document.getElementById('editExpenseForm');
+                        resetExpenseForm(editModal, editForm, { resetSelect: true });
+                        populateEditModal(data);
+                        editModal.dataset.preserveExpenseDraft = 'true';
+                        bootstrap.Modal.getOrCreateInstance(editModal).show();
+                        return;
+                    }
+
+                    if (action === 'delete') {
+                        populateDeleteModal(data);
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteExpenseModal')).show();
+                    }
+                });
+
+                document.getElementById('btnViewToEdit')?.addEventListener('click', function () {
+                    const btn = this;
+                    const data = {
+                        id: btn.dataset.expenseId,
+                        description: btn.dataset.expenseDescription,
+                        amount: btn.dataset.expenseAmount,
+                        date: btn.dataset.expenseDate,
+                        category: btn.dataset.expenseCategory
+                    };
+                    bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal'))?.hide();
+                    const editModal = document.getElementById('editExpenseModal');
+                    const editForm = document.getElementById('editExpenseForm');
+                    resetExpenseForm(editModal, editForm, { resetSelect: true });
+                    populateEditModal(data);
+                    editModal.dataset.preserveExpenseDraft = 'true';
+                    setTimeout(function () {
+                        bootstrap.Modal.getOrCreateInstance(editModal).show();
+                    }, 300);
+                });
+            }
+
+            let refreshTransactionHistoryPanel = null;
+
+            function updateTrackerStats(stats) {
+                if (!stats) return;
+
+                const spentMonthEl = document.querySelector('[data-stat="spent-month"]');
+                const remainingEl = document.querySelector('[data-stat="remaining"]');
+                const totalSpentEl = document.querySelector('[data-stat="total-spent"]');
+                const transactionCountEl = document.querySelector('[data-stat="transaction-count"]');
+                const averageEl = document.querySelector('[data-stat="average"]');
+
+                if (spentMonthEl) spentMonthEl.textContent = formatMoney(stats.monthlyTotal);
+                if (totalSpentEl) totalSpentEl.textContent = formatMoney(stats.totalAmount);
+                if (transactionCountEl) transactionCountEl.textContent = String(stats.transactionCount);
+                if (averageEl) averageEl.textContent = formatMoney(stats.averageAmount);
+
+                if (remainingEl) {
+                    remainingEl.textContent = formatMoney(stats.remainingBudget);
+                    const card = remainingEl.closest('.stat-card');
+                    if (card) {
+                        card.classList.toggle('stat-card--over', stats.remainingBudget < 0);
+                    }
+                }
+            }
+
+            function getCurrentSearchPhrase() {
+                const input = document.getElementById('trackerSearchPhrase');
+                if (input?.value?.trim()) return input.value.trim();
+                return new URLSearchParams(window.location.search).get('search') || '';
+            }
+
+            async function refreshCategoryUtilizationPanel() {
+                const host = document.getElementById('categoryUtilizationHost');
+                if (!host) return;
+
+                const url = '@Url.Action("RefreshCategoryUtilization", "Expenses")';
+                const response = await fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (response.ok) {
+                    host.innerHTML = await response.text();
+                }
+            }
+
+            function setupDeleteExpenseForm() {
+                const form = document.getElementById('deleteExpenseForm');
+                if (!form) return;
+
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    const scrollY = window.scrollY;
+                    const submitBtn = form.querySelector('[type="submit"]');
+                    if (submitBtn) submitBtn.disabled = true;
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!response.ok) return;
+
+                        const result = await response.json();
+                        bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'))?.hide();
+
+                        if (refreshTransactionHistoryPanel) {
+                            await refreshTransactionHistoryPanel(getCurrentSearchPhrase());
+                        }
+
+                        updateTrackerStats(result.stats);
+                        await refreshCategoryUtilizationPanel();
+
+                        window.scrollTo(0, scrollY);
+                    } finally {
+                        if (submitBtn) submitBtn.disabled = false;
+                    }
+                });
+            }
+
+            function setupTrackerHistorySearch() {
+                const host = document.getElementById('transactionHistoryHost');
+                if (!host) return;
+
+                const searchUrl = '@Url.Action("SearchTransactions", "Expenses")';
+                const indexUrl = '@Url.Action("Index", "Expenses")';
+
+                let searchInFlight = false;
+
+                function showSearchLoading() {
+                    if (host.querySelector('.tracker-history-loading')) return;
+                    host.classList.add('is-loading');
+                    const overlay = document.createElement('div');
+                    overlay.className = 'tracker-history-loading';
+                    overlay.innerHTML = '<div class="tracker-history-loading__spinner" role="status" aria-label="Loading results"></div>';
+                    host.appendChild(overlay);
+                }
+
+                function hideSearchLoading() {
+                    const overlay = host.querySelector('.tracker-history-loading');
+                    if (!overlay) {
+                        host.classList.remove('is-loading');
+                        return;
+                    }
+
+                    if (overlay.dataset.hiding === 'true') return;
+                    overlay.dataset.hiding = 'true';
+                    overlay.classList.add('is-hiding');
+
+                    let done = false;
+                    const finish = function () {
+                        if (done) return;
+                        done = true;
+                        overlay.remove();
+                        host.classList.remove('is-loading');
+                    };
+
+                    overlay.addEventListener('transitionend', finish, { once: true });
+                    window.setTimeout(finish, 180);
+                }
+
+                function waitForPaint() {
+                    return new Promise(function (resolve) {
+                        requestAnimationFrame(function () {
+                            requestAnimationFrame(resolve);
+                        });
+                    });
+                }
+
+                function syncSearchSubmitState() {
+                    const form = host.querySelector('[data-tracker-search-form]');
+                    if (!form) return;
+                    const input = form.querySelector('[name="searchPhrase"]');
+                    const submitBtn = form.querySelector('.tracker-history-search__submit');
+                    if (!input || !submitBtn) return;
+                    submitBtn.disabled = !input.value.trim();
+                }
+
+                function swapTransactionHistoryPanel(html) {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html.trim();
+                    const newPanel = temp.querySelector('.tracker-activity-panel');
+                    const currentPanel = host.querySelector('.tracker-activity-panel');
+
+                    if (newPanel && currentPanel) {
+                        currentPanel.replaceWith(newPanel);
+                        return;
+                    }
+
+                    host.querySelector('.tracker-history-loading')?.remove();
+                    host.innerHTML = html;
+                }
+
+                async function loadPanel(searchPhrase) {
+                    if (searchInFlight) return;
+                    const trimmed = (searchPhrase || '').trim();
+
+                    searchInFlight = true;
+                    const url = new URL(searchUrl, window.location.origin);
+                    if (trimmed) {
+                        url.searchParams.set('search', trimmed);
+                    }
+
+                    showSearchLoading();
+                    try {
+                        const response = await fetch(url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!response.ok) return;
+
+                        swapTransactionHistoryPanel(await response.text());
+
+                        const nextUrl = trimmed
+                            ? indexUrl + '?search=' + encodeURIComponent(trimmed)
+                            : indexUrl;
+                        history.replaceState({ trackerSearch: trimmed }, '', nextUrl);
+
+                        await waitForPaint();
+                    } finally {
+                        hideSearchLoading();
+                        searchInFlight = false;
+                        syncSearchSubmitState();
+                    }
+                }
+
+                host.addEventListener('submit', function (e) {
+                    const form = e.target.closest('[data-tracker-search-form]');
+                    if (!form || !host.contains(form)) return;
+                    e.preventDefault();
+                    const input = form.querySelector('[name="searchPhrase"]');
+                    const trimmed = (input?.value || '').trim();
+                    if (!trimmed) {
+                        syncSearchSubmitState();
+                        return;
+                    }
+                    loadPanel(trimmed);
+                });
+
+                host.addEventListener('input', function (e) {
+                    if (!e.target.closest('[data-tracker-search-form] [name="searchPhrase"]')) return;
+                    syncSearchSubmitState();
+                });
+
+                host.addEventListener('click', function (e) {
+                    if (!e.target.closest('[data-tracker-search-clear]')) return;
+                    e.preventDefault();
+                    loadPanel('');
+                });
+
+                window.addEventListener('popstate', function () {
+                    if (!document.getElementById('transactionHistoryHost')) return;
+                    const params = new URLSearchParams(window.location.search);
+                    loadPanel(params.get('search') || '');
+                });
+
+                syncSearchSubmitState();
+                refreshTransactionHistoryPanel = loadPanel;
+            }
+
+            function setupAddExpenseForm() {
+                const addModal = document.getElementById('addExpenseModal');
+                const addForm = document.getElementById('addExpenseForm');
+                setupExpenseModalForm(addModal, addForm, {
+                    onReset: function () {
+                        resetExpenseForm(addModal, addForm, { clearAmount: true, resetSelect: true });
+                    }
+                });
+            }
+
+            function setupEditExpenseForm() {
+                const editModal = document.getElementById('editExpenseModal');
+                const editForm = document.getElementById('editExpenseForm');
+                if (!editModal || !editForm) return;
+
+                setupExpenseModalForm(editModal, editForm, {
+                    onAfterOpen: function () {
+                        refreshEditExpenseSnapshot(editForm);
+                    }
+                });
+
+                editForm.addEventListener('submit', function (e) {
+                    if (!hasEditExpenseChanges(editForm)) {
+                        e.preventDefault();
+                        showEditNoChangesNotice();
+                        return;
+                    }
+                    hideEditNoChangesNotice();
+                });
+
+                editForm.addEventListener('input', hideEditNoChangesNotice);
+                editForm.addEventListener('change', hideEditNoChangesNotice);
+            }
+
             function setupBudgetBreakdownColors() {
                 const panel = document.querySelector('.budget-breakdown');
                 if (!panel) return;
@@ -560,6 +1200,13 @@ else
             setupEditPanel('btnEditCategoryBudgets', 'btnCancelCategoryBudgets', 'categoryBudgetsView', 'categoryBudgetsEdit', resetCategoryFormFromView);
             setupCategoryBudgetValidation();
             setupBudgetBreakdownColors();
+            setupSpendiSelects(document.getElementById('addExpenseModal'));
+            setupSpendiSelects(document.getElementById('editExpenseModal'));
+            setupAddExpenseForm();
+            setupEditExpenseForm();
+            setupExpenseListActions();
+            setupDeleteExpenseForm();
+            setupTrackerHistorySearch();
 
             document.getElementById('btnSetCategoryBudgets')?.addEventListener('click', function () {
                 const panel = document.getElementById('categoryBudgetsPanel');
@@ -573,6 +1220,36 @@ else
                 document.getElementById('categoryBudgetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 document.getElementById('btnEditCategoryBudgets')?.click();
                 validateCategoryBudgetForm();
+            }
+            // Open add expense modal if flag is set
+            if (openAddExpenseModalFlag) {
+                const modalEl = document.getElementById('addExpenseModal');
+                if (modalEl) {
+                    modalEl.dataset.preserveExpenseDraft = 'true';
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openEditExpenseModalFlag) {
+                const modalEl = document.getElementById('editExpenseModal');
+                if (modalEl) {
+                    modalEl.dataset.preserveExpenseDraft = 'true';
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openViewExpenseModalFlag) {
+                const modalEl = document.getElementById('viewExpenseModal');
+                if (modalEl) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openDeleteExpenseModalFlag) {
+                const modalEl = document.getElementById('deleteExpenseModal');
+                if (modalEl) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
             }
         })();
     </script>
