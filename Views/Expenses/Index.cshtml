@@ -14,16 +14,7 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div>
         <h1>Expense Tracker</h1>
-        <p class="lead">
-            @if (!string.IsNullOrWhiteSpace(Model.SearchPhrase))
-            {
-                <text>Results for &ldquo;@Model.SearchPhrase&rdquo;</text>
-            }
-            else
-            {
-                <text>All your recorded spending in one place.</text>
-            }
-        </p>
+        <p class="lead">All your recorded spending in one place.</p>
     </div>
     <div class="action-links">
         <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
@@ -370,64 +361,19 @@
 {
     <div class="row g-3 tracker-activity">
         <div class="col-lg-7">
-            <div class="form-panel tracker-activity-panel">
-                <div class="tracker-section-header">
-                    <div>
-                        <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
-                        <p class="help-text mb-0">Your recorded expenses, newest first.</p>
-                    </div>
-                    @if (Model.Expenses.Any())
-                    {
-                        <span class="tracker-section-header__badge">@Model.TransactionCount</span>
-                    }
-                </div>
-
-                <div class="tracker-activity-panel__scroll">
-                    @if (Model.Expenses.Any())
-                    {
-                        @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
-                    }
-                    else
-                    {
-                        <div class="tracker-inline-empty">
-                            <p class="mb-2">No transactions recorded yet.</p>
-                                <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                                    Add your first expense
-                                </button>
-                        </div>
-                    }
-                </div>
+            <div id="transactionHistoryHost">
+                @await Html.PartialAsync("_TransactionHistoryPanel", Model)
             </div>
         </div>
-
         <div class="col-lg-5">
             @await Html.PartialAsync("_CategoryUtilization", Model)
         </div>
     </div>
 }
-else if (Model.Expenses.Any())
-{
-    <div class="form-panel tracker-activity-panel">
-        <div class="tracker-section-header">
-            <div>
-                <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
-                <p class="help-text mb-0">Your recorded expenses, newest first.</p>
-            </div>
-            <span class="tracker-section-header__badge">@Model.TransactionCount</span>
-        </div>
-        <div class="tracker-activity-panel__scroll">
-            @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
-        </div>
-    </div>
-}
 else
 {
-    <div class="empty-state">
-        <h3>No expenses yet</h3>
-        <p>Start tracking by adding your first expense.</p>
-            <button type="button" class="btn btn-gold mt-2" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                Add your first expense
-            </button>
+    <div id="transactionHistoryHost">
+        @await Html.PartialAsync("_TransactionHistoryPanel", Model)
     </div>
 }
 </div>
@@ -872,10 +818,10 @@ else
             }
 
             function setupExpenseListActions() {
-                const list = document.querySelector('.expense-list');
-                if (!list) return;
+                const trackerPage = document.querySelector('.tracker-page');
+                if (!trackerPage) return;
 
-                list.addEventListener('click', function (e) {
+                trackerPage.addEventListener('click', function (e) {
                     const actionBtn = e.target.closest('[data-expense-action]');
                     if (!actionBtn) return;
 
@@ -920,6 +866,144 @@ else
                         bootstrap.Modal.getOrCreateInstance(editModal).show();
                     }, 300);
                 });
+            }
+
+            function setupTrackerHistorySearch() {
+                const host = document.getElementById('transactionHistoryHost');
+                if (!host) return;
+
+                const searchUrl = '@Url.Action("SearchTransactions", "Expenses")';
+                const indexUrl = '@Url.Action("Index", "Expenses")';
+
+                let searchInFlight = false;
+
+                function showSearchLoading() {
+                    if (host.querySelector('.tracker-history-loading')) return;
+                    host.classList.add('is-loading');
+                    const overlay = document.createElement('div');
+                    overlay.className = 'tracker-history-loading';
+                    overlay.innerHTML = '<div class="tracker-history-loading__spinner" role="status" aria-label="Loading results"></div>';
+                    host.appendChild(overlay);
+                }
+
+                function hideSearchLoading() {
+                    const overlay = host.querySelector('.tracker-history-loading');
+                    if (!overlay) {
+                        host.classList.remove('is-loading');
+                        return;
+                    }
+
+                    if (overlay.dataset.hiding === 'true') return;
+                    overlay.dataset.hiding = 'true';
+                    overlay.classList.add('is-hiding');
+
+                    let done = false;
+                    const finish = function () {
+                        if (done) return;
+                        done = true;
+                        overlay.remove();
+                        host.classList.remove('is-loading');
+                    };
+
+                    overlay.addEventListener('transitionend', finish, { once: true });
+                    window.setTimeout(finish, 180);
+                }
+
+                function waitForPaint() {
+                    return new Promise(function (resolve) {
+                        requestAnimationFrame(function () {
+                            requestAnimationFrame(resolve);
+                        });
+                    });
+                }
+
+                function syncSearchSubmitState() {
+                    const form = host.querySelector('[data-tracker-search-form]');
+                    if (!form) return;
+                    const input = form.querySelector('[name="searchPhrase"]');
+                    const submitBtn = form.querySelector('.tracker-history-search__submit');
+                    if (!input || !submitBtn) return;
+                    submitBtn.disabled = !input.value.trim();
+                }
+
+                function swapTransactionHistoryPanel(html) {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html.trim();
+                    const newPanel = temp.querySelector('.tracker-activity-panel');
+                    const currentPanel = host.querySelector('.tracker-activity-panel');
+
+                    if (newPanel && currentPanel) {
+                        currentPanel.replaceWith(newPanel);
+                        return;
+                    }
+
+                    host.querySelector('.tracker-history-loading')?.remove();
+                    host.innerHTML = html;
+                }
+
+                async function loadPanel(searchPhrase) {
+                    if (searchInFlight) return;
+                    const trimmed = (searchPhrase || '').trim();
+
+                    searchInFlight = true;
+                    const url = new URL(searchUrl, window.location.origin);
+                    if (trimmed) {
+                        url.searchParams.set('search', trimmed);
+                    }
+
+                    showSearchLoading();
+                    try {
+                        const response = await fetch(url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!response.ok) return;
+
+                        swapTransactionHistoryPanel(await response.text());
+
+                        const nextUrl = trimmed
+                            ? indexUrl + '?search=' + encodeURIComponent(trimmed)
+                            : indexUrl;
+                        history.replaceState({ trackerSearch: trimmed }, '', nextUrl);
+
+                        await waitForPaint();
+                    } finally {
+                        hideSearchLoading();
+                        searchInFlight = false;
+                        syncSearchSubmitState();
+                    }
+                }
+
+                host.addEventListener('submit', function (e) {
+                    const form = e.target.closest('[data-tracker-search-form]');
+                    if (!form || !host.contains(form)) return;
+                    e.preventDefault();
+                    const input = form.querySelector('[name="searchPhrase"]');
+                    const trimmed = (input?.value || '').trim();
+                    if (!trimmed) {
+                        syncSearchSubmitState();
+                        return;
+                    }
+                    loadPanel(trimmed);
+                });
+
+                host.addEventListener('input', function (e) {
+                    if (!e.target.closest('[data-tracker-search-form] [name="searchPhrase"]')) return;
+                    syncSearchSubmitState();
+                });
+
+                host.addEventListener('click', function (e) {
+                    if (!e.target.closest('[data-tracker-search-clear]')) return;
+                    e.preventDefault();
+                    loadPanel('');
+                });
+
+                window.addEventListener('popstate', function () {
+                    if (!document.getElementById('transactionHistoryHost')) return;
+                    const params = new URLSearchParams(window.location.search);
+                    loadPanel(params.get('search') || '');
+                });
+
+                syncSearchSubmitState();
             }
 
             function setupAddExpenseForm() {
@@ -1010,6 +1094,7 @@ else
             setupAddExpenseForm();
             setupEditExpenseForm();
             setupExpenseListActions();
+            setupTrackerHistorySearch();
 
             document.getElementById('btnSetCategoryBudgets')?.addEventListener('click', function () {
                 const panel = document.getElementById('categoryBudgetsPanel');

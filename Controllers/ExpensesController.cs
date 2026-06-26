@@ -26,9 +26,20 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // GET: Expenses
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search)
         {
+            var trimmedSearch = search?.Trim();
             var model = await LoadIndexViewModelAsync();
+
+            if (!string.IsNullOrWhiteSpace(trimmedSearch))
+            {
+                model.Expenses = await (await GetUserExpensesQueryAsync())
+                    .Where(e => e.Description.Contains(trimmedSearch))
+                    .OrderByDescending(e => e.Date)
+                    .ToListAsync();
+                model.SearchPhrase = trimmedSearch;
+            }
+
             return View(model);
         }
 
@@ -147,31 +158,43 @@ namespace SpendiTrackWeb.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: Search
+        // GET: Search — legacy route
         public IActionResult ShowSearchForm()
         {
-            return View();
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: Search
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ShowSearchResults(string? searchPhrase)
+        // GET: Transaction history search (partial update, no full page reload)
+        [HttpGet]
+        public async Task<IActionResult> SearchTransactions(string? search)
         {
-            var query = await GetUserExpensesQueryAsync();
-            if (!string.IsNullOrWhiteSpace(searchPhrase))
+            var model = await LoadIndexViewModelAsync();
+            var trimmedSearch = search?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(trimmedSearch))
             {
-                query = query.Where(e => e.Description.Contains(searchPhrase));
+                model.Expenses = await (await GetUserExpensesQueryAsync())
+                    .Where(e => e.Description.Contains(trimmedSearch))
+                    .OrderByDescending(e => e.Date)
+                    .ToListAsync();
+                model.SearchPhrase = trimmedSearch;
             }
 
-            var expenses = await query
-                .OrderByDescending(e => e.Date)
-                .ToListAsync();
+            return PartialView("_TransactionHistoryPanel", model);
+        }
 
-            var model = await LoadIndexViewModelAsync(expenses);
-            model.SearchPhrase = searchPhrase;
+        // POST: Search — fallback redirect for non-JS clients
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ShowSearchResults(string? searchPhrase)
+        {
+            var trimmed = searchPhrase?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                return RedirectToAction(nameof(Index));
+            }
 
-            return View("Index", model);
+            return RedirectToAction(nameof(Index), new { search = trimmed });
         }
 
         // GET: Expenses/Details/5

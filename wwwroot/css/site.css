@@ -922,12 +922,69 @@ input[type="number"]::-webkit-inner-spin-button {
 .tracker-activity-panel__scroll {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0.15rem 0.85rem 0.15rem 0.15rem;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--gold-dark) transparent;
+}
+
+.tracker-activity-panel__scroll .tracker-inline-empty--fill {
+  flex: 1 1 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#transactionHistoryHost {
+  position: relative;
+}
+
+#transactionHistoryHost.is-loading {
+  pointer-events: none;
+}
+
+.tracker-history-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 13, 13, 0.78);
+  border-radius: 10px;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.tracker-history-loading.is-hiding {
+  opacity: 0;
+}
+
+.tracker-history-loading__spinner {
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 3px solid rgba(212, 175, 55, 0.22);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: tracker-history-spin 0.7s linear infinite;
+}
+
+@keyframes tracker-history-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracker-history-loading__spinner {
+    animation-duration: 1.2s;
+  }
 }
 
 .category-utilization .tracker-activity-panel__scroll {
@@ -967,6 +1024,40 @@ input[type="number"]::-webkit-inner-spin-button {
   border-radius: 999px;
   border: 1px solid var(--gold-dark);
   line-height: 1;
+}
+
+.tracker-section-header--with-search {
+  margin-bottom: 0.85rem;
+}
+
+.tracker-history-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tracker-history-search__input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.tracker-history-search__submit,
+.tracker-history-search__clear {
+  flex-shrink: 0;
+}
+
+.tracker-history-search__submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (max-width: 575.98px) {
+  .tracker-history-search__input {
+    flex-basis: 100%;
+  }
 }
 
 .tracker-inline-empty,
