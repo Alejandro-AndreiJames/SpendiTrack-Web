@@ -1,12 +1,25 @@
 ﻿@{
     var userThemeKey = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "guest";
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+    string NavLinkClass(string controller, string action = "Index", bool controllerOnly = false)
+    {
+        var isActive = controllerOnly
+            ? string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase)
+            : string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase)
+              && string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+        return isActive ? "nav-link active" : "nav-link";
+    }
 }
 <!DOCTYPE html>
 <html lang="en" data-theme="classic" data-user-theme-key="@userThemeKey">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - SpendiTrack</title>
+    <title>SpendiTrack</title>
+    <link rel="icon" type="image/svg+xml" sizes="any" href="~/SpendiTrackIcon.svg" asp-append-version="true" />
+    <link rel="alternate icon" type="image/svg+xml" href="~/SpendiTrackIcon.svg" asp-append-version="true" />
     <script>
         (function () {
             try {
@@ -34,13 +47,13 @@
                 <div class="collapse navbar-collapse" id="mainNav">
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="@NavLinkClass("Home", "Index")" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Expenses" asp-action="Index">Tracker</a>
+                            <a class="@NavLinkClass("Expenses", controllerOnly: true)" asp-controller="Expenses" asp-action="Index">Tracker</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="About">About</a>
+                            <a class="@NavLinkClass("Home", "About")" asp-controller="Home" asp-action="About">About</a>
                         </li>
                         <partial name="_ThemePicker" />
                     </ul>

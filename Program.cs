@@ -44,6 +44,14 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
+app.MapGet("/favicon.ico", (IWebHostEnvironment env) =>
+{
+    var iconPath = Path.Combine(env.WebRootPath, "SpendiTrackIcon.svg");
+    return File.Exists(iconPath)
+        ? Results.File(iconPath, "image/svg+xml")
+        : Results.NotFound();
+});
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
