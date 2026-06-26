@@ -12,8 +12,8 @@ using SpendiTrackWeb.Data;
 namespace SpendiTrackWeb.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250718034542_initialsetup")]
-    partial class InitialSetup
+    [Migration("20260611034631_AddExpenseUserId")]
+    partial class AddExpenseUserId
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -227,6 +227,31 @@ namespace SpendiTrackWeb.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("SpendiTrackWeb.Models.CategoryBudget", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AllocatedAmount")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CategoryBudgets");
+                });
+
             modelBuilder.Entity("SpendiTrackWeb.Models.Expense", b =>
                 {
                     b.Property<int>("Id")
@@ -249,9 +274,42 @@ namespace SpendiTrackWeb.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Expense");
+                });
+
+            modelBuilder.Entity("SpendiTrackWeb.Models.UserBudget", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("FixedMonthlyCosts")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<decimal>("MonthlyIncome")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<decimal>("SavingsPercent")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserBudgets");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

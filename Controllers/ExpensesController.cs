@@ -26,14 +26,19 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // GET: Expenses
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search)
         {
-            var expenses = await _context.Expense
-                .OrderByDescending(e => e.Date)
-                .ToListAsync();
+            var trimmedSearch = search?.Trim();
+            var model = await LoadIndexViewModelAsync();
 
-            var model = BuildIndexViewModel(expenses);
-            await ApplyBudgetToModelAsync(model);
+            if (!string.IsNullOrWhiteSpace(trimmedSearch))
+            {
+                model.Expenses = await (await GetUserExpensesQueryAsync())
+                    .Where(e => e.Description.Contains(trimmedSearch))
+                    .OrderByDescending(e => e.Date)
+                    .ToListAsync();
+                model.SearchPhrase = trimmedSearch;
+            }
 
             return View(model);
         }
@@ -44,18 +49,19 @@ namespace SpendiTrackWeb.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var expenses = await _context.Expense
-                    .OrderByDescending(e => e.Date)
-                    .ToListAsync();
+                var expenses = await GetUserExpensesOrderedAsync();
                 var model = BuildIndexViewModel(expenses);
                 model.HasBudgetSetup = false;
                 model.MonthlyIncome = input.MonthlyIncome;
                 model.SavingsPercent = input.SavingsPercent;
                 model.FixedMonthlyCosts = input.FixedMonthlyCosts;
+
+                await ApplyCategoryBudgetsToModelAsync(model, expenses);
+                ApplyBudgetBreakdownToModel(model);
                 return View("Index", model);
             }
 
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null)
             {
                 return Challenge();
@@ -87,31 +93,102 @@ namespace SpendiTrackWeb.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: Search
-        public IActionResult ShowSearchForm()
-        {
-            return View();
-        }
-
-        // POST: Search
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ShowSearchResults(string? searchPhrase)
+        public async Task<IActionResult> SaveCategoryBudgets(CategoryBudgetSetupViewModel input)
         {
-            var query = _context.Expense.AsQueryable();
-            if (!string.IsNullOrWhiteSpace(searchPhrase))
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+                return Challenge();
+
+            var userBudget = await _context.UserBudgets
+                .FirstOrDefaultAsync(b => b.UserId == user.Id);
+
+            if (userBudget == null)
+                return RedirectToAction(nameof(Index));
+
+            if (input.Categories == null || input.Categories.Count == 0)
             {
-                query = query.Where(e => e.Description.Contains(searchPhrase));
+                ModelState.AddModelError(string.Empty, "No category budget data was submitted.");
+                var errorModel = await LoadIndexViewModelAsync();
+                return View("Index", errorModel);
             }
 
-            var expenses = await query
-                .OrderByDescending(e => e.Date)
-                .ToListAsync();
+            var monthStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            var monthlySpent = await _context.Expense
+                .Where(e => e.UserId == user.Id && e.Date >= monthStart)
+                .SumAsync(e => e.Amount);
 
-            var model = BuildIndexViewModel(expenses);
-            model.SearchPhrase = searchPhrase;
-            await ApplyBudgetToModelAsync(model);
-            return View("Index", model);
+            var limit = _budgetCalculator.Calculate(userBudget, monthlySpent).SpendingLimit;
+            var totalAllocated = input.Categories.Sum(c => c.AllocatedAmount);
+
+            if (totalAllocated > limit)
+            {
+                ModelState.AddModelError(string.Empty,
+                    $"Total allocations ({totalAllocated:C}) cannot exceed your spending limit ({limit:C}).");
+
+                var model = await LoadIndexViewModelAsync();
+                ApplySubmittedCategoryForm(model, input.Categories);
+                TempData["OpenCategoryBudgetEdit"] = true;
+
+                return View("Index", model);
+            }
+
+            foreach (var item in input.Categories)
+            {
+                var existing = await _context.CategoryBudgets
+                    .FirstOrDefaultAsync(b => b.UserId == user.Id && b.Category == item.Category);
+
+                if (existing == null)
+                {
+                    _context.CategoryBudgets.Add(new CategoryBudget
+                    {
+                        UserId = user.Id,
+                        Category = item.Category,
+                        AllocatedAmount = item.AllocatedAmount
+                    });
+                }
+                else
+                {
+                    existing.AllocatedAmount = item.AllocatedAmount;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        // GET: Search — legacy route (redirect to Tracker)
+        public IActionResult ShowSearchForm()
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        // GET: Transaction history search (partial update, no full page reload)
+        [HttpGet]
+        public async Task<IActionResult> SearchTransactions(string? search)
+        {
+            var model = await LoadIndexViewModelAsync();
+            var trimmedSearch = search?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(trimmedSearch))
+            {
+                model.Expenses = await (await GetUserExpensesQueryAsync())
+                    .Where(e => e.Description.Contains(trimmedSearch))
+                    .OrderByDescending(e => e.Date)
+                    .ToListAsync();
+                model.SearchPhrase = trimmedSearch;
+            }
+
+            return PartialView("_TransactionHistoryPanel", model);
+        }
+
+        // GET: Category utilization refresh (after expense changes)
+        [HttpGet]
+        public async Task<IActionResult> RefreshCategoryUtilization()
+        {
+            var model = await LoadIndexViewModelAsync();
+            return PartialView("_CategoryUtilization", model);
         }
 
         // GET: Expenses/Details/5
@@ -122,20 +199,22 @@ namespace SpendiTrackWeb.Controllers
                 return NotFound();
             }
 
-            var expense = await _context.Expense
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var expense = await FindUserExpenseAsync(id.Value);
             if (expense == null)
             {
                 return NotFound();
             }
 
-            return View(expense);
+            var model = await LoadIndexViewModelAsync();
+            model.ViewExpense = expense;
+            model.OpenViewExpenseModal = true;
+            return View("Index", model);
         }
 
         // GET: Expenses/Create
         public IActionResult Create()
         {
-            return View(new Expense { Date = DateTime.Today });
+            return RedirectToAction(nameof(Index));
         }
 
         // POST: Expenses/Create
@@ -143,13 +222,22 @@ namespace SpendiTrackWeb.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Description,Amount,Date,Category")] Expense expense)
         {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return Challenge();
+            }
+
+            expense.UserId = user.Id;
+            ModelState.Remove(nameof(Expense.UserId));
+
             if (ModelState.IsValid)
             {
                 _context.Add(expense);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(expense);
+            return await IndexWithDraftAsync(expense);
         }
 
         // GET: Expenses/Edit/5
@@ -160,12 +248,16 @@ namespace SpendiTrackWeb.Controllers
                 return NotFound();
             }
 
-            var expense = await _context.Expense.FindAsync(id);
+            var expense = await FindUserExpenseAsync(id.Value);
             if (expense == null)
             {
                 return NotFound();
             }
-            return View(expense);
+
+            var model = await LoadIndexViewModelAsync();
+            model.EditExpense = expense;
+            model.OpenEditExpenseModal = true;
+            return View("Index", model);
         }
 
         // POST: Expenses/Edit/5
@@ -178,25 +270,41 @@ namespace SpendiTrackWeb.Controllers
                 return NotFound();
             }
 
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return Challenge();
+            }
+
+            var existing = await FindUserExpenseAsync(id);
+            if (existing == null)
+            {
+                return NotFound();
+            }
+
+            ModelState.Remove(nameof(Expense.UserId));
+
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(expense);
+                    existing.Description = expense.Description;
+                    existing.Amount = expense.Amount;
+                    existing.Date = expense.Date;
+                    existing.Category = expense.Category;
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ExpenseExists(expense.Id))
+                    if (!await UserExpenseExistsAsync(expense.Id))
                     {
                         return NotFound();
                     }
-
                     throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(expense);
+            return await IndexWithEditDraftAsync(expense);
         }
 
         // GET: Expenses/Delete/5
@@ -207,14 +315,16 @@ namespace SpendiTrackWeb.Controllers
                 return NotFound();
             }
 
-            var expense = await _context.Expense
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var expense = await FindUserExpenseAsync(id.Value);
             if (expense == null)
             {
                 return NotFound();
             }
 
-            return View(expense);
+            var model = await LoadIndexViewModelAsync();
+            model.DeleteExpense = expense;
+            model.OpenDeleteExpenseModal = true;
+            return View("Index", model);
         }
 
         // POST: Expenses/Delete/5
@@ -222,24 +332,86 @@ namespace SpendiTrackWeb.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var expense = await _context.Expense.FindAsync(id);
+            var expense = await FindUserExpenseAsync(id);
             if (expense != null)
             {
                 _context.Expense.Remove(expense);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
+            if (IsAjaxRequest(Request))
+            {
+                var model = await LoadIndexViewModelAsync();
+                return Json(new
+                {
+                    success = true,
+                    stats = new
+                    {
+                        model.HasBudgetSetup,
+                        model.MonthlyTotal,
+                        model.RemainingBudget,
+                        model.TotalAmount,
+                        model.TransactionCount,
+                        model.AverageAmount
+                    }
+                });
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ExpenseExists(int id)
+        private static bool IsAjaxRequest(HttpRequest request) =>
+            string.Equals(request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.Ordinal);
+
+        private async Task<IdentityUser?> GetCurrentUserAsync()
         {
-            return _context.Expense.Any(e => e.Id == id);
+            return await _userManager.GetUserAsync(User);
+        }
+
+        private async Task<IQueryable<Expense>> GetUserExpensesQueryAsync()
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return _context.Expense.Where(_ => false);
+            }
+
+            return _context.Expense.Where(e => e.UserId == user.Id);
+        }
+
+        private async Task<List<Expense>> GetUserExpensesOrderedAsync()
+        {
+            return await (await GetUserExpensesQueryAsync())
+                .OrderByDescending(e => e.Date)
+                .ToListAsync();
+        }
+
+        private async Task<Expense?> FindUserExpenseAsync(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return null;
+            }
+
+            return await _context.Expense
+                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == user.Id);
+        }
+
+        private async Task<bool> UserExpenseExistsAsync(int id)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return false;
+            }
+
+            return await _context.Expense.AnyAsync(e => e.Id == id && e.UserId == user.Id);
         }
 
         private async Task ApplyBudgetToModelAsync(ExpenseIndexViewModel model)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null)
             {
                 model.HasBudgetSetup = false;
@@ -259,20 +431,126 @@ namespace SpendiTrackWeb.Controllers
             _budgetCalculator.ApplyToViewModel(result, model);
         }
 
+        private async Task ApplyCategoryBudgetsToModelAsync(
+            ExpenseIndexViewModel model,
+            IReadOnlyList<Expense> expenses)
+        {
+            if (!model.HasBudgetSetup)
+                return;
+
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+                return;
+
+            var budgets = await _context.CategoryBudgets
+                .Where(b => b.UserId == user.Id)
+                .ToListAsync();
+
+            var monthStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            var spentByCategory = expenses
+                .Where(e => e.Date >= monthStart)
+                .GroupBy(e => e.Category)
+                .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
+
+            model.CategoryBudgets = _budgetCalculator.BuildCategorySummaries(
+                ExpenseCategories.All, budgets, spentByCategory);
+
+            model.ActiveCategoryBudgets = model.CategoryBudgets
+                .Where(c => c.Allocated > 0)
+                .OrderByDescending(c => c.Allocated)
+                .ToList();
+
+            model.TotalAllocated = _budgetCalculator.TotalAllocated(budgets);
+            model.UnallocatedFromLimit = _budgetCalculator.Unallocated(
+                model.SpendingLimit, model.TotalAllocated);
+
+            model.HasCategoryBudgetSetup = budgets.Count > 0;
+
+            model.CategoryAllocationForm = ExpenseCategories.All
+                .Select(cat => new CategoryAllocationInput
+                {
+                    Category = cat,
+                    AllocatedAmount = budgets.FirstOrDefault(b => b.Category == cat)?.AllocatedAmount ?? 0
+                })
+                .ToList();
+        }
+
+        private void ApplyBudgetBreakdownToModel(ExpenseIndexViewModel model)
+        {
+            if (!model.HasBudgetSetup)
+                return;
+
+            var income = new BudgetCalculationResult
+            {
+                MonthlyIncome = model.MonthlyIncome,
+                SavingsPercent = model.SavingsPercent,
+                SavingsAmount = model.SavingsAmount,
+                FixedMonthlyCosts = model.FixedMonthlyCosts,
+                SpendingLimit = model.SpendingLimit,
+                RemainingBudget = model.RemainingBudget,
+            };
+
+            model.BudgetBreakdown = _budgetCalculator.BuildBreakdown(
+                income,
+                model.TotalAllocated,
+                model.MonthlyTotal);
+        }
+
+        private async Task<ExpenseIndexViewModel> LoadIndexViewModelAsync(List<Expense>? expenses = null)
+        {
+            expenses ??= await GetUserExpensesOrderedAsync();
+            var model = BuildIndexViewModel(expenses);
+
+            await ApplyBudgetToModelAsync(model);
+            await ApplyCategoryBudgetsToModelAsync(model, expenses);
+            ApplyBudgetBreakdownToModel(model);
+
+            return model;
+        }
+
+        private async Task<IActionResult> IndexWithEditDraftAsync(Expense expense)
+        {
+            var model = await LoadIndexViewModelAsync();
+            model.EditExpense = expense;
+            model.OpenEditExpenseModal = true;
+
+            return View("Index", model);
+        }
+
+        private async Task<IActionResult> IndexWithDraftAsync(Expense expense)
+        {
+            var model = await LoadIndexViewModelAsync();
+            model.DraftExpense = expense;
+            model.OpenAddExpenseModal = true;
+
+            return View("Index", model);
+        }
+
+        private static void ApplySubmittedCategoryForm(
+            ExpenseIndexViewModel model,
+            List<CategoryAllocationInput> submitted)
+        {
+            if (submitted == null || submitted.Count == 0)
+                return;
+
+            model.CategoryAllocationForm = submitted;
+        }
+
         private static ExpenseIndexViewModel BuildIndexViewModel(IReadOnlyList<Expense> expenses)
         {
             var now = DateTime.Now;
             var monthStart = new DateTime(now.Year, now.Month, 1);
+            var expensesThisMonth = expenses.Where(e => e.Date >= monthStart).ToList();
 
             return new ExpenseIndexViewModel
             {
                 Expenses = expenses,
                 TransactionCount = expenses.Count,
                 TotalAmount = expenses.Sum(e => e.Amount),
-                MonthlyTotal = expenses.Where(e => e.Date >= monthStart).Sum(e => e.Amount),
+                MonthlyTotal = expensesThisMonth.Sum(e => e.Amount),
                 AverageAmount = expenses.Count > 0 ? expenses.Average(e => e.Amount) : 0,
                 LargestExpense = expenses.Count > 0 ? expenses.Max(e => e.Amount) : 0,
-                CategoryTotals = expenses
+                CategoryTotals = expensesThisMonth
                     .GroupBy(e => e.Category)
                     .OrderByDescending(g => g.Sum(e => e.Amount))
                     .ToDictionary(g => g.Key, g => g.Sum(e => e.Amount))

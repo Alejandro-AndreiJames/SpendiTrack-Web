@@ -1,38 +1,50 @@
 ﻿@model SpendiTrackWeb.Models.ExpenseIndexViewModel
+@using SpendiTrackWeb.Models
 
 @{
     ViewData["Title"] = "Expense Tracker";
+    var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
+    var openAddExpenseModal = Model.OpenAddExpenseModal;
+    var expenseForModal = Model.DraftExpense ?? new Expense { Date = DateTime.Today };
+    var openEditExpenseModal = Model.OpenEditExpenseModal;
+    var editExpenseForModal = Model.EditExpense ?? new Expense { Date = DateTime.Today };
+    var openViewExpenseModal = Model.OpenViewExpenseModal;
+    var openDeleteExpenseModal = Model.OpenDeleteExpenseModal;
 }
 
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
     <div>
         <h1>Expense Tracker</h1>
-        <p class="lead">
-            @if (!string.IsNullOrWhiteSpace(Model.SearchPhrase))
-            {
-                <text>Results for &ldquo;@Model.SearchPhrase&rdquo;</text>
-            }
-            else
-            {
-                <text>All your recorded spending in one place.</text>
-            }
-        </p>
+        <p class="lead">All your recorded spending in one place.</p>
     </div>
     <div class="action-links">
-        <a asp-action="Create" class="btn btn-gold">+ Add Expense</a>
-        <a asp-action="ShowSearchForm" class="btn btn-outline-gold">Search</a>
+        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+            + Add Expense
+        </button>
     </div>
 </div>
 
+<div class="tracker-page"
+     data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()"
+     data-open-add-expense-modal="@openAddExpenseModal.ToString().ToLowerInvariant()"
+     data-open-edit-expense-modal="@openEditExpenseModal.ToString().ToLowerInvariant()"
+     data-open-view-expense-modal="@openViewExpenseModal.ToString().ToLowerInvariant()"
+     data-open-delete-expense-modal="@openDeleteExpenseModal.ToString().ToLowerInvariant()">
+
+@if (!ViewData.ModelState.IsValid && !Model.OpenAddExpenseModal && !Model.OpenEditExpenseModal)
+{
+    <div class="tracker-alert" role="alert">
+        <div asp-validation-summary="All"></div>
+    </div>
+}
+
 @if (!Model.HasBudgetSetup)
 {
-    <div class="form-panel mb-4">
+    <div class="form-panel">
         <h2 class="h5 mb-2" style="color: var(--gold);">Set up your monthly budget</h2>
         <p class="help-text mb-3">Enter your income first so we can calculate your spending limit.</p>
-
         <form asp-action="SaveBudget" method="post" class="row g-3">
             @Html.AntiForgeryToken()
-
             <div class="col-md-4">
                 <label class="form-label">Monthly income</label>
                 <input name="MonthlyIncome" value="@Model.MonthlyIncome"
@@ -55,7 +67,7 @@
     </div>
 }
 
-<div class="row g-3 mb-4">
+<div class="row g-3 tracker-stats">
     @if (Model.HasBudgetSetup)
     {
         <div class="col-6 col-md-3">
@@ -73,43 +85,40 @@
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">Spent this month</div>
-                <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
+                <div class="stat-value" data-stat="spent-month">@Model.MonthlyTotal.ToString("C")</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="stat-card">
+            <div class="stat-card stat-card--highlight@(Model.RemainingBudget < 0 ? " stat-card--over" : "")">
                 <div class="stat-label">Remaining</div>
-                <div class="stat-value" style="@(Model.RemainingBudget < 0 ? "color: #ff6b6b;" : "")">
-                    @Model.RemainingBudget.ToString("C")
-                </div>
+                <div class="stat-value" data-stat="remaining">@Model.RemainingBudget.ToString("C")</div>
             </div>
         </div>
-        
     }
     else
     {
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">Total spent</div>
-                <div class="stat-value">@Model.TotalAmount.ToString("C")</div>
+                <div class="stat-value" data-stat="total-spent">@Model.TotalAmount.ToString("C")</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">This month</div>
-                <div class="stat-value">@Model.MonthlyTotal.ToString("C")</div>
+                <div class="stat-value" data-stat="spent-month">@Model.MonthlyTotal.ToString("C")</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">Transactions</div>
-                <div class="stat-value">@Model.TransactionCount</div>
+                <div class="stat-value" data-stat="transaction-count">@Model.TransactionCount</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-label">Average</div>
-                <div class="stat-value">@Model.AverageAmount.ToString("C")</div>
+                <div class="stat-value" data-stat="average">@Model.AverageAmount.ToString("C")</div>
             </div>
         </div>
     }
@@ -117,66 +126,1136 @@
 
 @if (Model.HasBudgetSetup)
 {
-    <details class="form-panel mb-4">
-        <summary style="cursor:pointer; color: var(--text-secondary);">Edit monthly income</summary>
-        <form asp-action="SaveBudget" method="post" class="row g-3 mt-3">
-            @Html.AntiForgeryToken()
-            <div class="col-md-4">
-                <label class="form-label">Monthly income</label>
-                <input name="MonthlyIncome" value="@Model.MonthlyIncome"
-                       class="form-control" type="number" step="0.01" min="0.01" required />
+    var incomeBarSavings = Model.MonthlyIncome > 0
+        ? Math.Min((double)(Model.SavingsAmount / Model.MonthlyIncome * 100), 100)
+        : 0;
+    var incomeBarFixed = Model.MonthlyIncome > 0
+        ? Math.Min((double)(Model.FixedMonthlyCosts / Model.MonthlyIncome * 100), 100 - incomeBarSavings)
+        : 0;
+    var incomeBarLimit = Model.MonthlyIncome > 0
+        ? Math.Min((double)(Model.SpendingLimit / Model.MonthlyIncome * 100), 100 - incomeBarSavings - incomeBarFixed)
+        : 0;
+
+    <div class="form-panel budget-breakdown" data-user-key="@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anon")">
+        <div class="budget-breakdown__header">
+            <div class="budget-breakdown__header-copy">
+                <h2 class="h5 mb-1" style="color: var(--gold);">Monthly budget breakdown</h2>
+                <p class="help-text mb-0">Where your income goes each month.</p>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Savings goal (%)</label>
-                <input name="SavingsPercent" value="@Model.SavingsPercent"
-                       class="form-control" type="number" min="0" max="100" />
+        </div>
+
+        <div class="budget-breakdown__color-panel">
+            <p class="budget-breakdown__hint mb-0">Tip: You can personalize these colors.</p>
+            <div class="budget-breakdown__color-tools" aria-label="Choose colors for breakdown segments">
+                <label class="budget-breakdown__color-item">
+                    <span>Savings</span>
+                    <input type="color" value="#a8892a" data-breakdown-color="savings" aria-label="Savings color" />
+                </label>
+                <label class="budget-breakdown__color-item">
+                    <span>Fixed costs</span>
+                    <input type="color" value="#6b6b6b" data-breakdown-color="fixed" aria-label="Fixed costs color" />
+                </label>
+                <label class="budget-breakdown__color-item">
+                    <span>Available</span>
+                    <input type="color" value="#d4af37" data-breakdown-color="limit" aria-label="Available to spend color" />
+                </label>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Fixed monthly costs</label>
-                <input name="FixedMonthlyCosts" value="@Model.FixedMonthlyCosts"
-                       class="form-control" type="number" step="0.01" min="0" />
+        </div>
+
+        <div class="budget-breakdown__stacked-bar" aria-label="Income split across savings, fixed costs, and spending limit">
+            <span class="budget-breakdown__stack budget-breakdown__stack--savings" style="width: @($"{incomeBarSavings}%")"></span>
+            <span class="budget-breakdown__stack budget-breakdown__stack--fixed" style="width: @($"{incomeBarFixed}%")"></span>
+            <span class="budget-breakdown__stack budget-breakdown__stack--limit" style="width: @($"{incomeBarLimit}%")"></span>
+        </div>
+
+        <div class="budget-breakdown__segments">
+                <div class="budget-breakdown__segment budget-breakdown__segment--savings">
+                    <span class="budget-breakdown__segment-dot budget-breakdown__segment-dot--savings" aria-hidden="true"></span>
+                    <div class="budget-breakdown__segment-body">
+                        <span class="budget-breakdown__segment-label">Savings (@Model.SavingsPercent.ToString("0.##")%)</span>
+                        <span class="budget-breakdown__segment-value">@Model.SavingsAmount.ToString("C")</span>
+                    </div>
+                </div>
+                <div class="budget-breakdown__segment budget-breakdown__segment--fixed">
+                    <span class="budget-breakdown__segment-dot budget-breakdown__segment-dot--fixed" aria-hidden="true"></span>
+                    <div class="budget-breakdown__segment-body">
+                        <span class="budget-breakdown__segment-label">Fixed costs (@incomeBarFixed.ToString("0")%)</span>
+                        <span class="budget-breakdown__segment-value">@Model.FixedMonthlyCosts.ToString("C")</span>
+                    </div>
+                </div>
+                <div class="budget-breakdown__segment budget-breakdown__segment--limit">
+                    <span class="budget-breakdown__segment-dot budget-breakdown__segment-dot--limit" aria-hidden="true"></span>
+                    <div class="budget-breakdown__segment-body">
+                        <span class="budget-breakdown__segment-label">Available to spend (@incomeBarLimit.ToString("0")%)</span>
+                        <span class="budget-breakdown__segment-value">@Model.SpendingLimit.ToString("C")</span>
+                    </div>
+                </div>
             </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-outline-gold">Update budget</button>
-            </div>
-        </form>
-    </details>
+    </div>
 }
 
-@if (Model.CategoryTotals.Any())
+@if (Model.HasBudgetSetup)
 {
-    <div class="row mb-4">
-        <div class="col-lg-5">
-            <div class="form-panel">
-                <h2 class="h5 mb-3" style="color: var(--gold);">Spending by category</h2>
+    <div class="row g-3 tracker-overview">
+        <div class="col-lg-6">
+            <div class="form-panel h-100 allocation-panel">
+                <h2 class="h5 mb-2" style="color: var(--gold);">Allocation summary</h2>
                 @{
-                    var maxCategory = Model.CategoryTotals.Values.DefaultIfEmpty(1).Max();
+                    var allocatedPct = Model.SpendingLimit > 0
+                        ? Math.Min((double)(Model.TotalAllocated / Model.SpendingLimit * 100), 100)
+                        : 0;
+                    var unassignedPct = Model.SpendingLimit > 0 && Model.UnallocatedFromLimit > 0
+                        ? Math.Min((double)(Model.UnallocatedFromLimit / Model.SpendingLimit * 100), 100 - allocatedPct)
+                        : 0;
+                    var isOverAllocated = Model.UnallocatedFromLimit < 0;
                 }
-                @foreach (var cat in Model.CategoryTotals)
+                <div class="allocation-summary">
+                    <div class="allocation-summary__item allocation-summary__item--left">
+                        <div class="allocation-summary__label">Allocated</div>
+                        <div class="allocation-summary__value">@Model.TotalAllocated.ToString("C")</div>
+                    </div>
+                    <div class="allocation-summary__item allocation-summary__item--right">
+                        <div class="allocation-summary__label">Unassigned</div>
+                        <div class="allocation-summary__value @(isOverAllocated ? "allocation-summary__value--over" : "")">
+                            @Model.UnallocatedFromLimit.ToString("C")
+                        </div>
+                    </div>
+                </div>
+                <div class="allocation-summary__visual">
+                    <div class="allocation-summary__bar-meta">
+                        @if (isOverAllocated)
+                        {
+                            <span class="allocation-summary__bar-note allocation-summary__value--over">
+                                Over limit by @((-Model.UnallocatedFromLimit).ToString("C"))
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="allocation-summary__bar-note">@allocatedPct.ToString("0")% assigned</span>
+                            <span class="allocation-summary__bar-note">@unassignedPct.ToString("0")% unassigned</span>
+                        }
+                    </div>
+                    <div class="progress allocation-summary__bar" role="progressbar"
+                         aria-valuenow="@allocatedPct.ToString("0")" aria-valuemin="0" aria-valuemax="100"
+                         aria-label="Share of spending limit allocated to categories">
+                        <div class="progress-bar @(isOverAllocated ? "allocation-summary__bar-fill--over" : "allocation-summary__bar-fill")"
+                             style="width: @($"{(isOverAllocated ? 100 : allocatedPct)}%")"></div>
+                    </div>
+                    <p class="help-text allocation-summary__caption mb-0">
+                        Category budgets vs your @Model.SpendingLimit.ToString("C") spending limit
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="form-panel h-100 budget-profile" id="budgetProfile">
+                <div class="budget-profile__header">
+                    <h2 class="h5 mb-0" style="color: var(--gold);">Budget profile</h2>
+                    <button type="button" class="btn-edit-profile" id="btnEditProfile" aria-label="Edit budget profile">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="budget-profile__view" id="budgetProfileView">
+                    <div class="budget-profile__row">
+                        <span class="budget-profile__label">Monthly income</span>
+                        <span class="budget-profile__value">@Model.MonthlyIncome.ToString("C")</span>
+                    </div>
+                    <div class="budget-profile__row">
+                        <span class="budget-profile__label">Monthly savings</span>
+                        <span class="budget-profile__value">
+                            @Model.SavingsAmount.ToString("C")
+                            (@Model.SavingsPercent.ToString("0.##")%)
+                        </span>
+                    </div>
+                    <div class="budget-profile__row">
+                        <span class="budget-profile__label">Fixed monthly costs</span>
+                        <span class="budget-profile__value">@Model.FixedMonthlyCosts.ToString("C")</span>
+                    </div>
+                </div>
+
+                <form asp-action="SaveBudget" method="post" class="budget-profile__edit" id="budgetProfileEdit" hidden>
+                    @Html.AntiForgeryToken()
+                    <div class="budget-profile__field">
+                        <label class="form-label">Monthly income</label>
+                        <input name="MonthlyIncome" value="@Model.MonthlyIncome"
+                               class="form-control" type="number" step="0.01" min="0.01" required />
+                    </div>
+                    <div class="budget-profile__field">
+                        <label class="form-label">Savings goal (%)</label>
+                        <input name="SavingsPercent" value="@Model.SavingsPercent"
+                               class="form-control" type="number" min="0" max="100" />
+                    </div>
+                    <div class="budget-profile__field">
+                        <label class="form-label">Fixed monthly costs</label>
+                        <input name="FixedMonthlyCosts" value="@Model.FixedMonthlyCosts"
+                               class="form-control" type="number" step="0.01" min="0" />
+                    </div>
+                    <div class="budget-profile__actions">
+                        <button type="submit" class="btn btn-gold">Save changes</button>
+                        <button type="button" class="btn btn-outline-gold" id="btnCancelEdit">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-panel category-budgets-panel" id="categoryBudgetsPanel">
+        <div class="budget-profile__header">
+            <div>
+                <h2 class="h5 mb-1" style="color: var(--gold);">Category budgets</h2>
+                <p class="help-text mb-0">Assign amounts from your spending limit to each category.</p>
+            </div>
+            <button type="button" class="btn-edit-profile" id="btnEditCategoryBudgets" aria-label="Edit category budgets">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="category-budget-grid" id="categoryBudgetsView">
+            @foreach (var item in Model.CategoryBudgets)
+            {
+                <div class="category-budget-chip @(item.Allocated == 0 ? "category-budget-chip--zero" : "")">
+                    <span class="category-budget-chip__name">@item.Category</span>
+                    <span class="category-budget-chip__amount" data-amount="@item.Allocated">@item.Allocated.ToString("C")</span>
+                </div>
+            }
+        </div>
+
+        <form asp-action="SaveCategoryBudgets" method="post" class="budget-profile__edit" id="categoryBudgetsEdit" hidden
+              data-spending-limit="@Model.SpendingLimit">
+            @Html.AntiForgeryToken()
+            <p class="category-budget-form-error" id="categoryBudgetFormError" hidden role="alert"></p>
+            <div class="category-budget-grid category-budget-grid--edit">
+                @for (int i = 0; i < Model.CategoryAllocationForm.Count; i++)
                 {
-                    var pct = maxCategory > 0 ? (double)(cat.Value / maxCategory * 100) : 0;
-                    <div class="category-bar">
-                        <div class="category-name">
-                            <span>@cat.Key</span>
-                            <span class="amount-cell">@cat.Value.ToString("C")</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar" style="width: @pct.ToString("F0")%"></div>
-                        </div>
+                    <div class="category-budget-chip category-budget-chip--edit">
+                        <label class="category-budget-chip__name mb-0">@Model.CategoryAllocationForm[i].Category</label>
+                        <input type="hidden" name="Categories[@i].Category"
+                               value="@Model.CategoryAllocationForm[i].Category" />
+                        <input name="Categories[@i].AllocatedAmount"
+                               value="@Model.CategoryAllocationForm[i].AllocatedAmount"
+                               class="form-control category-budget-chip__input" type="number" step="0.01" min="0" />
                     </div>
                 }
             </div>
-        </div>
+            <div class="category-budget-form-total">
+                <span>Total allocated</span>
+                <span id="categoryBudgetRunningTotal">@Model.TotalAllocated.ToString("C")</span>
+                <span class="category-budget-form-total__sep">/</span>
+                <span id="categoryBudgetLimit">@Model.SpendingLimit.ToString("C")</span>
+            </div>
+            <div class="budget-profile__actions">
+                <button type="submit" class="btn btn-gold" id="btnSaveCategoryBudgets">Save changes</button>
+                <button type="button" class="btn btn-outline-gold" id="btnCancelCategoryBudgets">Cancel</button>
+            </div>
+        </form>
+    </div>
+}
+
+@if (Model.HasBudgetSetup)
+{
+    <div class="row g-3 tracker-activity">
         <div class="col-lg-7">
-            @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
+            <div id="transactionHistoryHost">
+                @await Html.PartialAsync("_TransactionHistoryPanel", Model)
+            </div>
+        </div>
+        <div class="col-lg-5" id="categoryUtilizationHost">
+            @await Html.PartialAsync("_CategoryUtilization", Model)
         </div>
     </div>
 }
 else
 {
-    <div class="empty-state mb-4">
-        <h3>No expenses yet</h3>
-        <p>Start tracking by adding your first expense. Sign in if prompted when creating entries.</p>
-        <a asp-action="Create" class="btn btn-gold mt-2">Add your first expense</a>
+    <div id="transactionHistoryHost">
+        @await Html.PartialAsync("_TransactionHistoryPanel", Model)
     </div>
+}
+</div>
+
+<partial name="_AddExpenseModal" model="expenseForModal" />
+<partial name="_EditExpenseModal" model="editExpenseForModal" />
+<partial name="_ViewExpenseModal" model="Model.ViewExpense" />
+<partial name="_DeleteExpenseModal" model="Model.DeleteExpense" />
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        (function () {
+            const openCategoryBudgetEdit = document.querySelector('.tracker-page')?.dataset.openCategoryBudgetEdit === 'true';
+            const openAddExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openAddExpenseModal === 'true';
+            const openEditExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openEditExpenseModal === 'true';
+            const openViewExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openViewExpenseModal === 'true';
+            const openDeleteExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openDeleteExpenseModal === 'true';
+
+            function formatMoney(value) {
+                return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(value);
+            }
+
+            function setupEditPanel(btnEditId, btnCancelId, viewId, editId, onCancel) {
+                const btnEdit = document.getElementById(btnEditId);
+                const btnCancel = document.getElementById(btnCancelId);
+                const view = document.getElementById(viewId);
+                const edit = document.getElementById(editId);
+
+                if (!btnEdit || !btnCancel || !view || !edit) return;
+
+                btnEdit.addEventListener('click', function () {
+                    view.hidden = true;
+                    edit.hidden = false;
+                    btnEdit.hidden = true;
+                });
+
+                btnCancel.addEventListener('click', function () {
+                    if (onCancel) onCancel();
+                    view.hidden = false;
+                    edit.hidden = true;
+                    btnEdit.hidden = false;
+                });
+            }
+
+            function resetCategoryFormFromView() {
+                const view = document.getElementById('categoryBudgetsView');
+                const form = document.getElementById('categoryBudgetsEdit');
+                if (!view || !form) return;
+
+                const amounts = view.querySelectorAll('.category-budget-chip__amount');
+                const inputs = form.querySelectorAll('input[name$=".AllocatedAmount"]');
+                amounts.forEach(function (el, i) {
+                    if (inputs[i]) {
+                        inputs[i].value = el.dataset.amount || '0';
+                    }
+                });
+                validateCategoryBudgetForm();
+            }
+
+            function validateCategoryBudgetForm() {
+                const form = document.getElementById('categoryBudgetsEdit');
+                if (!form) return true;
+
+                const limit = parseFloat(form.dataset.spendingLimit) || 0;
+                const errorEl = document.getElementById('categoryBudgetFormError');
+                const totalEl = document.getElementById('categoryBudgetRunningTotal');
+                const saveBtn = document.getElementById('btnSaveCategoryBudgets');
+                const inputs = form.querySelectorAll('input[name$=".AllocatedAmount"]');
+
+                let total = 0;
+                inputs.forEach(function (inp) {
+                    total += parseFloat(inp.value) || 0;
+                });
+
+                if (totalEl) totalEl.textContent = formatMoney(total);
+
+                const overLimit = total > limit + 0.001;
+                if (overLimit) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Total allocations (' + formatMoney(total) + ') cannot exceed your spending limit (' + formatMoney(limit) + ').';
+                        errorEl.hidden = false;
+                    }
+                    if (saveBtn) saveBtn.disabled = true;
+                    return false;
+                }
+
+                if (errorEl) errorEl.hidden = true;
+                if (saveBtn) saveBtn.disabled = false;
+                return true;
+            }
+
+            function setupCategoryBudgetValidation() {
+                const form = document.getElementById('categoryBudgetsEdit');
+                if (!form) return;
+
+                form.querySelectorAll('input[name$=".AllocatedAmount"]').forEach(function (inp) {
+                    inp.addEventListener('input', validateCategoryBudgetForm);
+                });
+
+                form.addEventListener('submit', function (e) {
+                    if (!validateCategoryBudgetForm()) e.preventDefault();
+                });
+
+                validateCategoryBudgetForm();
+            }
+
+            function setupSpendiSelects(root) {
+                (root || document).querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    if (wrap.dataset.spendiSelectReady === 'true') return;
+                    wrap.dataset.spendiSelectReady = 'true';
+
+                    const native = wrap.querySelector('.spendi-select__native');
+                    const trigger = wrap.querySelector('.spendi-select__trigger');
+                    const valueEl = wrap.querySelector('.spendi-select__value');
+                    const menu = wrap.querySelector('.spendi-select__menu');
+                    if (!native || !trigger || !valueEl || !menu) return;
+
+                    const placeholder = valueEl.dataset.placeholder || 'Select category';
+                    const options = menu.querySelectorAll('.spendi-select__option');
+
+                    function syncFromNative() {
+                        const val = native.value;
+                        if (!val) {
+                            valueEl.textContent = placeholder;
+                            valueEl.classList.add('is-placeholder');
+                        } else {
+                            valueEl.textContent = val;
+                            valueEl.classList.remove('is-placeholder');
+                        }
+                        options.forEach(function (opt) {
+                            opt.classList.toggle('is-selected', opt.dataset.value === val);
+                        });
+                    }
+
+                    function closeMenu() {
+                        menu.hidden = true;
+                        trigger.setAttribute('aria-expanded', 'false');
+                        wrap.classList.remove('is-open');
+                        options.forEach(function (opt) { opt.classList.remove('is-active'); });
+                    }
+
+                    function openMenu() {
+                        menu.hidden = false;
+                        trigger.setAttribute('aria-expanded', 'true');
+                        wrap.classList.add('is-open');
+                    }
+
+                    trigger.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        if (wrap.classList.contains('is-open')) {
+                            closeMenu();
+                        } else {
+                            openMenu();
+                        }
+                    });
+
+                    options.forEach(function (opt) {
+                        opt.addEventListener('mouseenter', function () {
+                            options.forEach(function (o) { o.classList.remove('is-active'); });
+                            opt.classList.add('is-active');
+                        });
+                        opt.addEventListener('click', function () {
+                            native.value = opt.dataset.value || '';
+                            native.dispatchEvent(new Event('change', { bubbles: true }));
+                            syncFromNative();
+                            closeMenu();
+                        });
+                    });
+
+                    document.addEventListener('click', function (e) {
+                        if (!wrap.contains(e.target)) closeMenu();
+                    });
+
+                    native.addEventListener('change', function () {
+                        syncFromNative();
+                        wrap.classList.toggle('is-invalid', native.classList.contains('input-validation-error'));
+                    });
+
+                    syncFromNative();
+                    wrap.classList.toggle('is-invalid', native.classList.contains('input-validation-error'));
+                });
+            }
+
+            function syncSpendiSelectValidation(form) {
+                if (!form) return;
+                const $form = window.jQuery ? jQuery(form) : null;
+                const validator = $form ? $form.data('validator') : null;
+
+                form.querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    const native = wrap.querySelector('.spendi-select__native');
+                    if (!native || !native.name) return;
+
+                    const msgEl = form.querySelector('span[data-valmsg-for="' + native.name + '"]');
+                    const hasErrorMsg = !!(msgEl
+                        && msgEl.classList.contains('field-validation-error')
+                        && msgEl.textContent.trim());
+                    const hasNativeError = native.classList.contains('input-validation-error');
+                    const hasValidatorError = !!(validator && validator.invalid && validator.invalid[native.name]);
+                    const isInvalid = hasErrorMsg || hasNativeError || hasValidatorError;
+
+                    wrap.classList.toggle('is-invalid', isInvalid);
+                    native.classList.toggle('input-validation-error', isInvalid);
+                });
+            }
+
+            function resetSpendiSelectDisplay(root) {
+                (root || document).querySelectorAll('[data-spendi-select]').forEach(function (wrap) {
+                    const native = wrap.querySelector('.spendi-select__native');
+                    const valueEl = wrap.querySelector('.spendi-select__value');
+                    const menu = wrap.querySelector('.spendi-select__menu');
+                    const trigger = wrap.querySelector('.spendi-select__trigger');
+                    if (!native || !valueEl) return;
+
+                    const placeholder = valueEl.dataset.placeholder || 'Select category';
+                    native.value = '';
+                    native.selectedIndex = 0;
+                    valueEl.textContent = placeholder;
+                    valueEl.classList.add('is-placeholder');
+                    wrap.classList.remove('is-invalid', 'is-open');
+                    native.classList.remove('input-validation-error');
+                    if (menu) menu.hidden = true;
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                    menu?.querySelectorAll('.spendi-select__option').forEach(function (opt) {
+                        opt.classList.remove('is-selected', 'is-active');
+                    });
+                });
+            }
+
+            function readExpenseData(source) {
+                return {
+                    id: source.dataset.expenseId,
+                    description: source.dataset.expenseDescription || '',
+                    amount: source.dataset.expenseAmount || '',
+                    date: source.dataset.expenseDate || '',
+                    category: source.dataset.expenseCategory || ''
+                };
+            }
+
+            let editExpenseSnapshot = null;
+
+            function normalizeExpenseAmount(value) {
+                const parsed = parseFloat(value);
+                return Number.isNaN(parsed) ? '' : parsed.toFixed(2);
+            }
+
+            function captureEditExpenseSnapshot(form) {
+                if (!form) return null;
+                return {
+                    description: (form.querySelector('[name="Description"]')?.value || '').trim(),
+                    amount: normalizeExpenseAmount(form.querySelector('[name="Amount"]')?.value || ''),
+                    date: form.querySelector('[name="Date"]')?.value || '',
+                    category: form.querySelector('[name="Category"]')?.value || ''
+                };
+            }
+
+            function hasEditExpenseChanges(form) {
+                if (!form || !editExpenseSnapshot) return true;
+                const current = captureEditExpenseSnapshot(form);
+                return current.description !== editExpenseSnapshot.description
+                    || current.amount !== editExpenseSnapshot.amount
+                    || current.date !== editExpenseSnapshot.date
+                    || current.category !== editExpenseSnapshot.category;
+            }
+
+            function showEditNoChangesNotice() {
+                const notice = document.getElementById('editExpenseNoChangesNotice');
+                if (notice) notice.hidden = false;
+            }
+
+            function hideEditNoChangesNotice() {
+                const notice = document.getElementById('editExpenseNoChangesNotice');
+                if (notice) notice.hidden = true;
+            }
+
+            function refreshEditExpenseSnapshot(form) {
+                editExpenseSnapshot = captureEditExpenseSnapshot(form);
+                hideEditNoChangesNotice();
+            }
+
+            function populateViewModal(data) {
+                const descEl = document.getElementById('viewExpenseDescription');
+                const amountEl = document.getElementById('viewExpenseAmount');
+                const dateEl = document.getElementById('viewExpenseDate');
+                const categoryEl = document.getElementById('viewExpenseCategory');
+                const btnEdit = document.getElementById('btnViewToEdit');
+
+                if (descEl) descEl.textContent = data.description;
+                if (amountEl) amountEl.textContent = formatMoney(parseFloat(data.amount) || 0);
+                if (dateEl) {
+                    const parsed = new Date(data.date + 'T00:00:00');
+                    dateEl.textContent = parsed.toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                if (categoryEl) categoryEl.textContent = data.category;
+
+                if (btnEdit) {
+                    btnEdit.dataset.expenseId = data.id;
+                    btnEdit.dataset.expenseDescription = data.description;
+                    btnEdit.dataset.expenseAmount = data.amount;
+                    btnEdit.dataset.expenseDate = data.date;
+                    btnEdit.dataset.expenseCategory = data.category;
+                }
+            }
+
+            function populateDeleteModal(data) {
+                const idInput = document.getElementById('DeleteExpense_Id');
+                const descEl = document.getElementById('deleteExpenseDescription');
+                const amountEl = document.getElementById('deleteExpenseAmount');
+                const dateEl = document.getElementById('deleteExpenseDate');
+                const categoryEl = document.getElementById('deleteExpenseCategory');
+
+                if (idInput) idInput.value = data.id;
+                if (descEl) descEl.textContent = data.description;
+                if (amountEl) amountEl.textContent = formatMoney(parseFloat(data.amount) || 0);
+                if (dateEl) {
+                    const parsed = new Date(data.date + 'T00:00:00');
+                    dateEl.textContent = parsed.toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                if (categoryEl) categoryEl.textContent = data.category;
+            }
+
+            function setSpendiSelectValue(modalEl, category) {
+                const native = modalEl?.querySelector('.spendi-select__native');
+                if (!native) return;
+                native.value = category || '';
+                native.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function populateEditModal(data) {
+                const form = document.getElementById('editExpenseForm');
+                const modalEl = document.getElementById('editExpenseModal');
+                if (!form || !modalEl) return;
+
+                form.querySelector('[name="Id"]').value = data.id;
+                const template = form.dataset.editUrl;
+                if (template) {
+                    form.action = template.replace('__id__', data.id);
+                }
+                form.querySelector('[name="Description"]').value = data.description;
+                form.querySelector('[name="Amount"]').value = data.amount;
+                form.querySelector('[name="Date"]').value = data.date;
+                setSpendiSelectValue(modalEl, data.category);
+                syncSpendiSelectValidation(form);
+            }
+
+            function resetExpenseForm(modalEl, form, options) {
+                options = options || {};
+                if (!form || !window.jQuery) return;
+
+                const $form = jQuery(form);
+                const validator = $form.data('validator');
+                if (validator) {
+                    validator.resetForm();
+                }
+
+                form.reset();
+
+                if (options.clearAmount) {
+                    const amountInput = form.querySelector('[name="Amount"]');
+                    if (amountInput) {
+                        amountInput.value = '';
+                    }
+                }
+
+                form.querySelectorAll('[data-valmsg-for]').forEach(function (el) {
+                    el.textContent = '';
+                    el.classList.remove('field-validation-error');
+                    el.classList.add('field-validation-valid');
+                });
+
+                form.querySelectorAll('.input-validation-error').forEach(function (el) {
+                    el.classList.remove('input-validation-error');
+                });
+
+                if (options.resetSelect) {
+                    resetSpendiSelectDisplay(modalEl);
+                }
+            }
+
+            function setupExpenseModalForm(modalEl, form, options) {
+                options = options || {};
+                if (!modalEl || !form || !window.jQuery) return;
+
+                const $form = jQuery(form);
+
+                function tuneValidator() {
+                    const validator = $form.data('validator');
+                    if (!validator) return;
+
+                    validator.settings.onfocusout = false;
+                    validator.settings.onfocusin = false;
+                    validator.settings.onclick = false;
+                    validator.settings.ignore = ':hidden:not(.spendi-select__native)';
+                    validator.settings.highlight = function (element) {
+                        jQuery(element).addClass('input-validation-error');
+                        syncSpendiSelectValidation(form);
+                    };
+                    validator.settings.unhighlight = function (element) {
+                        jQuery(element).removeClass('input-validation-error');
+                        syncSpendiSelectValidation(form);
+                    };
+                    validator.settings.onkeyup = function (element) {
+                        if (element.name === 'Amount' && element.value === '') {
+                            jQuery(element).removeClass('input-validation-error');
+                            jQuery(form).find('span[data-valmsg-for="Amount"]').text('').removeClass('field-validation-error');
+                        } else {
+                            jQuery(element).valid();
+                        }
+                        syncSpendiSelectValidation(form);
+                    };
+                }
+
+                if ($form.data('validator')) {
+                    tuneValidator();
+                } else {
+                    $form.on('submit.validate', tuneValidator);
+                }
+
+                $form.on('invalid-form.validate', function () {
+                    setTimeout(function () {
+                        syncSpendiSelectValidation(form);
+                    }, 0);
+                });
+
+                setTimeout(tuneValidator, 0);
+
+                form.addEventListener('input', function (e) {
+                    if (e.target && e.target.classList.contains('input-validation-error')) {
+                        jQuery(e.target).valid();
+                    }
+                    syncSpendiSelectValidation(form);
+                });
+
+                form.addEventListener('change', function (e) {
+                    if (e.target && e.target.classList.contains('spendi-select__native')) {
+                        jQuery(e.target).valid();
+                    }
+                    syncSpendiSelectValidation(form);
+                });
+
+                modalEl.addEventListener('show.bs.modal', function () {
+                    if (modalEl.dataset.preserveExpenseDraft === 'true') {
+                        delete modalEl.dataset.preserveExpenseDraft;
+                        setupSpendiSelects(modalEl);
+                        syncSpendiSelectValidation(form);
+                        if (typeof options.onAfterOpen === 'function') {
+                            options.onAfterOpen();
+                        }
+                        return;
+                    }
+                    if (typeof options.onReset === 'function') {
+                        options.onReset();
+                    }
+                });
+            }
+
+            function setupExpenseListActions() {
+                const trackerPage = document.querySelector('.tracker-page');
+                if (!trackerPage) return;
+
+                trackerPage.addEventListener('click', function (e) {
+                    const actionBtn = e.target.closest('[data-expense-action]');
+                    if (!actionBtn) return;
+
+                    const card = actionBtn.closest('[data-expense-id]');
+                    if (!card) return;
+
+                    const data = readExpenseData(card);
+                    const action = actionBtn.dataset.expenseAction;
+
+                    if (action === 'view') {
+                        populateViewModal(data);
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('viewExpenseModal')).show();
+                        return;
+                    }
+
+                    if (action === 'edit') {
+                        const editModal = document.getElementById('editExpenseModal');
+                        const editForm = document.getElementById('editExpenseForm');
+                        resetExpenseForm(editModal, editForm, { resetSelect: true });
+                        populateEditModal(data);
+                        editModal.dataset.preserveExpenseDraft = 'true';
+                        bootstrap.Modal.getOrCreateInstance(editModal).show();
+                        return;
+                    }
+
+                    if (action === 'delete') {
+                        populateDeleteModal(data);
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteExpenseModal')).show();
+                    }
+                });
+
+                document.getElementById('btnViewToEdit')?.addEventListener('click', function () {
+                    const btn = this;
+                    const data = {
+                        id: btn.dataset.expenseId,
+                        description: btn.dataset.expenseDescription,
+                        amount: btn.dataset.expenseAmount,
+                        date: btn.dataset.expenseDate,
+                        category: btn.dataset.expenseCategory
+                    };
+                    bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal'))?.hide();
+                    const editModal = document.getElementById('editExpenseModal');
+                    const editForm = document.getElementById('editExpenseForm');
+                    resetExpenseForm(editModal, editForm, { resetSelect: true });
+                    populateEditModal(data);
+                    editModal.dataset.preserveExpenseDraft = 'true';
+                    setTimeout(function () {
+                        bootstrap.Modal.getOrCreateInstance(editModal).show();
+                    }, 300);
+                });
+            }
+
+            let refreshTransactionHistoryPanel = null;
+
+            function updateTrackerStats(stats) {
+                if (!stats) return;
+
+                const spentMonthEl = document.querySelector('[data-stat="spent-month"]');
+                const remainingEl = document.querySelector('[data-stat="remaining"]');
+                const totalSpentEl = document.querySelector('[data-stat="total-spent"]');
+                const transactionCountEl = document.querySelector('[data-stat="transaction-count"]');
+                const averageEl = document.querySelector('[data-stat="average"]');
+
+                if (spentMonthEl) spentMonthEl.textContent = formatMoney(stats.monthlyTotal);
+                if (totalSpentEl) totalSpentEl.textContent = formatMoney(stats.totalAmount);
+                if (transactionCountEl) transactionCountEl.textContent = String(stats.transactionCount);
+                if (averageEl) averageEl.textContent = formatMoney(stats.averageAmount);
+
+                if (remainingEl) {
+                    remainingEl.textContent = formatMoney(stats.remainingBudget);
+                    const card = remainingEl.closest('.stat-card');
+                    if (card) {
+                        card.classList.toggle('stat-card--over', stats.remainingBudget < 0);
+                    }
+                }
+            }
+
+            function getCurrentSearchPhrase() {
+                const input = document.getElementById('trackerSearchPhrase');
+                if (input?.value?.trim()) return input.value.trim();
+                return new URLSearchParams(window.location.search).get('search') || '';
+            }
+
+            async function refreshCategoryUtilizationPanel() {
+                const host = document.getElementById('categoryUtilizationHost');
+                if (!host) return;
+
+                const url = '@Url.Action("RefreshCategoryUtilization", "Expenses")';
+                const response = await fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (response.ok) {
+                    host.innerHTML = await response.text();
+                }
+            }
+
+            function setupDeleteExpenseForm() {
+                const form = document.getElementById('deleteExpenseForm');
+                if (!form) return;
+
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    const scrollY = window.scrollY;
+                    const submitBtn = form.querySelector('[type="submit"]');
+                    if (submitBtn) submitBtn.disabled = true;
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!response.ok) return;
+
+                        const result = await response.json();
+                        bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'))?.hide();
+
+                        if (refreshTransactionHistoryPanel) {
+                            await refreshTransactionHistoryPanel(getCurrentSearchPhrase());
+                        }
+
+                        updateTrackerStats(result.stats);
+                        await refreshCategoryUtilizationPanel();
+
+                        window.scrollTo(0, scrollY);
+                    } finally {
+                        if (submitBtn) submitBtn.disabled = false;
+                    }
+                });
+            }
+
+            function setupTrackerHistorySearch() {
+                const host = document.getElementById('transactionHistoryHost');
+                if (!host) return;
+
+                const searchUrl = '@Url.Action("SearchTransactions", "Expenses")';
+                const indexUrl = '@Url.Action("Index", "Expenses")';
+
+                let searchInFlight = false;
+
+                function showSearchLoading() {
+                    if (host.querySelector('.tracker-history-loading')) return;
+                    host.classList.add('is-loading');
+                    const overlay = document.createElement('div');
+                    overlay.className = 'tracker-history-loading';
+                    overlay.innerHTML = '<div class="tracker-history-loading__spinner" role="status" aria-label="Loading results"></div>';
+                    host.appendChild(overlay);
+                }
+
+                function hideSearchLoading() {
+                    const overlay = host.querySelector('.tracker-history-loading');
+                    if (!overlay) {
+                        host.classList.remove('is-loading');
+                        return;
+                    }
+
+                    if (overlay.dataset.hiding === 'true') return;
+                    overlay.dataset.hiding = 'true';
+                    overlay.classList.add('is-hiding');
+
+                    let done = false;
+                    const finish = function () {
+                        if (done) return;
+                        done = true;
+                        overlay.remove();
+                        host.classList.remove('is-loading');
+                    };
+
+                    overlay.addEventListener('transitionend', finish, { once: true });
+                    window.setTimeout(finish, 180);
+                }
+
+                function waitForPaint() {
+                    return new Promise(function (resolve) {
+                        requestAnimationFrame(function () {
+                            requestAnimationFrame(resolve);
+                        });
+                    });
+                }
+
+                function syncSearchSubmitState() {
+                    const form = host.querySelector('[data-tracker-search-form]');
+                    if (!form) return;
+                    const input = form.querySelector('[name="searchPhrase"]');
+                    const submitBtn = form.querySelector('.tracker-history-search__submit');
+                    if (!input || !submitBtn) return;
+                    submitBtn.disabled = !input.value.trim();
+                }
+
+                function swapTransactionHistoryPanel(html) {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html.trim();
+                    const newPanel = temp.querySelector('.tracker-activity-panel');
+                    const currentPanel = host.querySelector('.tracker-activity-panel');
+
+                    if (newPanel && currentPanel) {
+                        currentPanel.replaceWith(newPanel);
+                        return;
+                    }
+
+                    host.querySelector('.tracker-history-loading')?.remove();
+                    host.innerHTML = html;
+                }
+
+                async function loadPanel(searchPhrase) {
+                    if (searchInFlight) return;
+                    const trimmed = (searchPhrase || '').trim();
+
+                    searchInFlight = true;
+                    const url = new URL(searchUrl, window.location.origin);
+                    if (trimmed) {
+                        url.searchParams.set('search', trimmed);
+                    }
+
+                    showSearchLoading();
+                    try {
+                        const response = await fetch(url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (!response.ok) return;
+
+                        swapTransactionHistoryPanel(await response.text());
+
+                        const nextUrl = trimmed
+                            ? indexUrl + '?search=' + encodeURIComponent(trimmed)
+                            : indexUrl;
+                        history.replaceState({ trackerSearch: trimmed }, '', nextUrl);
+
+                        await waitForPaint();
+                    } finally {
+                        hideSearchLoading();
+                        searchInFlight = false;
+                        syncSearchSubmitState();
+                    }
+                }
+
+                host.addEventListener('submit', function (e) {
+                    const form = e.target.closest('[data-tracker-search-form]');
+                    if (!form || !host.contains(form)) return;
+                    e.preventDefault();
+                    const input = form.querySelector('[name="searchPhrase"]');
+                    const trimmed = (input?.value || '').trim();
+                    if (!trimmed) {
+                        syncSearchSubmitState();
+                        return;
+                    }
+                    loadPanel(trimmed);
+                });
+
+                host.addEventListener('input', function (e) {
+                    if (!e.target.closest('[data-tracker-search-form] [name="searchPhrase"]')) return;
+                    syncSearchSubmitState();
+                });
+
+                host.addEventListener('click', function (e) {
+                    if (!e.target.closest('[data-tracker-search-clear]')) return;
+                    e.preventDefault();
+                    loadPanel('');
+                });
+
+                window.addEventListener('popstate', function () {
+                    if (!document.getElementById('transactionHistoryHost')) return;
+                    const params = new URLSearchParams(window.location.search);
+                    loadPanel(params.get('search') || '');
+                });
+
+                syncSearchSubmitState();
+                refreshTransactionHistoryPanel = loadPanel;
+            }
+
+            function setupAddExpenseForm() {
+                const addModal = document.getElementById('addExpenseModal');
+                const addForm = document.getElementById('addExpenseForm');
+                setupExpenseModalForm(addModal, addForm, {
+                    onReset: function () {
+                        resetExpenseForm(addModal, addForm, { clearAmount: true, resetSelect: true });
+                    }
+                });
+            }
+
+            function setupEditExpenseForm() {
+                const editModal = document.getElementById('editExpenseModal');
+                const editForm = document.getElementById('editExpenseForm');
+                if (!editModal || !editForm) return;
+
+                setupExpenseModalForm(editModal, editForm, {
+                    onAfterOpen: function () {
+                        refreshEditExpenseSnapshot(editForm);
+                    }
+                });
+
+                editForm.addEventListener('submit', function (e) {
+                    if (!hasEditExpenseChanges(editForm)) {
+                        e.preventDefault();
+                        showEditNoChangesNotice();
+                        return;
+                    }
+                    hideEditNoChangesNotice();
+                });
+
+                editForm.addEventListener('input', hideEditNoChangesNotice);
+                editForm.addEventListener('change', hideEditNoChangesNotice);
+            }
+
+            function setupBudgetBreakdownColors() {
+                const panel = document.querySelector('.budget-breakdown');
+                if (!panel) return;
+
+                const userKey = panel.dataset.userKey || 'anon';
+                const key = 'spenditrack.breakdown.colors.' + userKey;
+                function readThemeDefault(cssVar, fallback) {
+                    const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+                    return value || fallback;
+                }
+
+                const defaultColors = {
+                    savings: readThemeDefault('--budget-savings-default', '#a8892a'),
+                    fixed: readThemeDefault('--budget-fixed-default', '#c0446b'),
+                    limit: readThemeDefault('--budget-limit-default', '#d4af37')
+                };
+
+                function sanitizeHex(input, fallback) {
+                    return /^#[0-9a-fA-F]{6}$/.test(input || '') ? input : fallback;
+                }
+
+                function applyColors(colors) {
+                    panel.style.setProperty('--budget-savings-color', sanitizeHex(colors.savings, defaultColors.savings));
+                    panel.style.setProperty('--budget-fixed-color', sanitizeHex(colors.fixed, defaultColors.fixed));
+                    panel.style.setProperty('--budget-limit-color', sanitizeHex(colors.limit, defaultColors.limit));
+                }
+
+                let saved = null;
+                try {
+                    saved = JSON.parse(localStorage.getItem(key) || 'null');
+                } catch {
+                    saved = null;
+                }
+
+                const merged = { ...defaultColors, ...(saved || {}) };
+                applyColors(merged);
+
+                panel.querySelectorAll('input[data-breakdown-color]').forEach(function (input) {
+                    const segment = input.getAttribute('data-breakdown-color');
+                    const current = merged[segment];
+                    if (current) input.value = sanitizeHex(current, input.value);
+
+                    input.addEventListener('input', function () {
+                        merged[segment] = sanitizeHex(input.value, merged[segment]);
+                        applyColors(merged);
+                        localStorage.setItem(key, JSON.stringify(merged));
+                    });
+                });
+            }
+
+            setupEditPanel('btnEditProfile', 'btnCancelEdit', 'budgetProfileView', 'budgetProfileEdit');
+            setupEditPanel('btnEditCategoryBudgets', 'btnCancelCategoryBudgets', 'categoryBudgetsView', 'categoryBudgetsEdit', resetCategoryFormFromView);
+            setupCategoryBudgetValidation();
+            setupBudgetBreakdownColors();
+            setupSpendiSelects(document.getElementById('addExpenseModal'));
+            setupSpendiSelects(document.getElementById('editExpenseModal'));
+            setupAddExpenseForm();
+            setupEditExpenseForm();
+            setupExpenseListActions();
+            setupDeleteExpenseForm();
+            setupTrackerHistorySearch();
+
+            document.getElementById('btnSetCategoryBudgets')?.addEventListener('click', function () {
+                const panel = document.getElementById('categoryBudgetsPanel');
+                panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(function () {
+                    document.getElementById('btnEditCategoryBudgets')?.click();
+                }, 450);
+            });
+
+            if (openCategoryBudgetEdit) {
+                document.getElementById('categoryBudgetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('btnEditCategoryBudgets')?.click();
+                validateCategoryBudgetForm();
+            }
+            // Open add expense modal if flag is set
+            if (openAddExpenseModalFlag) {
+                const modalEl = document.getElementById('addExpenseModal');
+                if (modalEl) {
+                    modalEl.dataset.preserveExpenseDraft = 'true';
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openEditExpenseModalFlag) {
+                const modalEl = document.getElementById('editExpenseModal');
+                if (modalEl) {
+                    modalEl.dataset.preserveExpenseDraft = 'true';
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openViewExpenseModalFlag) {
+                const modalEl = document.getElementById('viewExpenseModal');
+                if (modalEl) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openDeleteExpenseModalFlag) {
+                const modalEl = document.getElementById('deleteExpenseModal');
+                if (modalEl) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+        })();
+    </script>
 }

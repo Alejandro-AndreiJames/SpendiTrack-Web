@@ -55,9 +55,58 @@ namespace SpendiTrackWeb.Services
             viewModel.HasBudgetSetup = true;
             viewModel.MonthlyIncome = result.MonthlyIncome;
             viewModel.SavingsPercent = result.SavingsPercent;
+            viewModel.SavingsAmount = result.SavingsAmount;
             viewModel.FixedMonthlyCosts = result.FixedMonthlyCosts;
             viewModel.SpendingLimit = result.SpendingLimit;
             viewModel.RemainingBudget = result.RemainingBudget;
+        }
+
+        public decimal TotalAllocated(IEnumerable<CategoryBudget> budgets)
+            => budgets.Sum(b => b.AllocatedAmount);
+
+        public decimal Unallocated(decimal spendingLimit, decimal totalAllocated)
+            => spendingLimit - totalAllocated;
+
+        public List<CategoryBudgetSummary> BuildCategorySummaries(
+            IEnumerable<string> allCategories,
+            IReadOnlyList<CategoryBudget> budgets,
+            IReadOnlyDictionary<string, decimal> spentByCategoryThisMonth)
+        {
+            var result = new List<CategoryBudgetSummary>();
+
+            foreach (var category in allCategories)
+            {
+                var budgetRow = budgets.FirstOrDefault(b => b.Category == category);
+                spentByCategoryThisMonth.TryGetValue(category, out var spent);
+
+                result.Add(new CategoryBudgetSummary
+                {
+                    Category = category,
+                    Allocated = budgetRow?.AllocatedAmount ?? 0,
+                    Spent = spent
+                });
+            }
+            return result;
+        }
+
+        public List<BudgetBreakdownLine> BuildBreakdown(
+            BudgetCalculationResult income,
+            decimal totalAllocated,
+            decimal monthlySpent)
+        {
+            var unassigned = Unallocated(income.SpendingLimit, totalAllocated);
+
+            return new List<BudgetBreakdownLine>
+            {
+                new() { Label = "Monthly income", Amount = income.MonthlyIncome, Kind = "normal" },
+                new() { Label = $"Monthly savings ({income.SavingsPercent:0.##}%)", Amount = income.SavingsAmount, Kind = "deduction" },
+                new() { Label = "Fixed monthly costs", Amount = income.FixedMonthlyCosts, Kind = "deduction" },
+                new() { Label = "Spending limit", Amount = income.SpendingLimit, Kind = "subtotal" },
+                new() { Label = "Allocated to categories", Amount = totalAllocated, Kind = "deduction" },
+                new() { Label = "Unassigned", Amount = unassigned, Kind = unassigned < 0 ? "over" : "normal" },
+                new() { Label = "Spent this month", Amount = monthlySpent, Kind = "deduction" },
+                new() { Label = "Left to spend", Amount = income.RemainingBudget, Kind = "total" },
+            };
         }
     }
 }

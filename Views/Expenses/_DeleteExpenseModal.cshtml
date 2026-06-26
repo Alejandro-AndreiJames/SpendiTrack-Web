@@ -1,0 +1,45 @@
+@model SpendiTrackWeb.Models.Expense?
+
+<div class="modal fade" id="deleteExpenseModal" tabindex="-1" aria-labelledby="deleteExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered expense-modal__dialog">
+        <div class="modal-content expense-modal expense-modal--delete">
+            <div class="modal-header">
+                <h2 class="modal-title h5 mb-0" id="deleteExpenseModalLabel" style="color: #ff8a80;">Delete expense</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Delete" method="post" id="deleteExpenseForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="DeleteExpense_Id" value="@(Model?.Id ?? 0)" />
+                <div class="modal-body">
+                    <p class="expense-delete-notice">This action cannot be undone.</p>
+                    <div class="expense-detail-grid">
+                        <div class="category-budget-chip expense-detail-chip expense-detail-chip--hero">
+                            <span class="category-budget-chip__name">Amount</span>
+                            <span class="category-budget-chip__amount" id="deleteExpenseAmount">
+                                @(Model != null ? Model.Amount.ToString("C") : "")
+                            </span>
+                        </div>
+                        <div class="category-budget-chip expense-detail-chip expense-detail-chip--wide">
+                            <span class="category-budget-chip__name">Description</span>
+                            <span class="expense-detail-chip__value" id="deleteExpenseDescription">@(Model?.Description)</span>
+                        </div>
+                        <div class="category-budget-chip expense-detail-chip">
+                            <span class="category-budget-chip__name">Date</span>
+                            <span class="expense-detail-chip__value" id="deleteExpenseDate">
+                                @(Model?.Date.ToString("MMMM d, yyyy"))
+                            </span>
+                        </div>
+                        <div class="category-budget-chip expense-detail-chip">
+                            <span class="category-budget-chip__name">Category</span>
+                            <span class="expense-detail-chip__value" id="deleteExpenseCategory">@(Model?.Category)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-gold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger-soft">Confirm delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
