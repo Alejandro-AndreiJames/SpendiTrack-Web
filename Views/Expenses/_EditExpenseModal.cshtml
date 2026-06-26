@@ -25,6 +25,9 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="Id" id="EditExpense_Id" />
                 <div class="modal-body">
+                    <p class="expense-form-notice expense-form-notice--warning" id="editExpenseNoChangesNotice" hidden role="alert">
+                        No changes were made.
+                    </p>
                     <div class="add-expense-field">
                         <label asp-for="Description" class="form-label"></label>
                         <input asp-for="Description" class="form-control" id="EditExpense_Description" placeholder="What did you spend on?" autocomplete="off" />

@@ -1613,6 +1613,17 @@ input[type="number"]::-webkit-inner-spin-button {
 #viewExpenseModal .expense-modal__dialog {
   max-width: 440px;
   width: calc(100% - 2rem);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 575.98px) {
+  #addExpenseModal .expense-modal__dialog,
+  #editExpenseModal .expense-modal__dialog,
+  #viewExpenseModal .expense-modal__dialog {
+    width: calc(100% - 1.5rem);
+    margin: 0.75rem auto;
+  }
 }
 
 .expense-modal {
@@ -1696,30 +1707,50 @@ input[type="number"]::-webkit-inner-spin-button {
   box-shadow: 0 0 0 0.2rem rgba(231, 76, 60, 0.22) !important;
 }
 
-.expense-modal .expense-detail-field {
-  margin-bottom: 0.65rem;
+.expense-modal .expense-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
 }
 
-.expense-modal .expense-detail-field--last {
-  margin-bottom: 0;
+.expense-modal .expense-detail-chip {
+  min-height: 3.75rem;
 }
 
-.expense-modal .expense-detail-label {
-  display: block;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-bottom: 0.2rem;
+.expense-modal .expense-detail-chip--hero {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 0.85rem 0.75rem;
 }
 
-.expense-modal .expense-detail-value {
-  margin: 0;
+.expense-modal .expense-detail-chip--hero .category-budget-chip__amount {
+  font-size: 1.5rem;
+}
+
+.expense-modal .expense-detail-chip--wide {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.expense-modal .expense-detail-chip__value {
   font-size: 0.95rem;
+  font-weight: 600;
   color: var(--text-primary);
+  line-height: 1.35;
+  word-break: break-word;
 }
 
-.expense-modal .expense-detail-value--amount {
-  font-size: 1.35rem;
-  font-weight: 600;
+.expense-form-notice {
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.expense-form-notice--warning {
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid var(--gold-dark);
   color: var(--gold);
 }
 

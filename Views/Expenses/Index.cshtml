@@ -430,10 +430,11 @@ else
             </button>
     </div>
 }
+</div>
+
 <partial name="_AddExpenseModal" model="expenseForModal" />
 <partial name="_EditExpenseModal" model="editExpenseForModal" />
 <partial name="_ViewExpenseModal" model="Model.ViewExpense" />
-</div>
 
 @section Scripts {
     @{
@@ -666,6 +667,47 @@ else
                 };
             }
 
+            let editExpenseSnapshot = null;
+
+            function normalizeExpenseAmount(value) {
+                const parsed = parseFloat(value);
+                return Number.isNaN(parsed) ? '' : parsed.toFixed(2);
+            }
+
+            function captureEditExpenseSnapshot(form) {
+                if (!form) return null;
+                return {
+                    description: (form.querySelector('[name="Description"]')?.value || '').trim(),
+                    amount: normalizeExpenseAmount(form.querySelector('[name="Amount"]')?.value || ''),
+                    date: form.querySelector('[name="Date"]')?.value || '',
+                    category: form.querySelector('[name="Category"]')?.value || ''
+                };
+            }
+
+            function hasEditExpenseChanges(form) {
+                if (!form || !editExpenseSnapshot) return true;
+                const current = captureEditExpenseSnapshot(form);
+                return current.description !== editExpenseSnapshot.description
+                    || current.amount !== editExpenseSnapshot.amount
+                    || current.date !== editExpenseSnapshot.date
+                    || current.category !== editExpenseSnapshot.category;
+            }
+
+            function showEditNoChangesNotice() {
+                const notice = document.getElementById('editExpenseNoChangesNotice');
+                if (notice) notice.hidden = false;
+            }
+
+            function hideEditNoChangesNotice() {
+                const notice = document.getElementById('editExpenseNoChangesNotice');
+                if (notice) notice.hidden = true;
+            }
+
+            function refreshEditExpenseSnapshot(form) {
+                editExpenseSnapshot = captureEditExpenseSnapshot(form);
+                hideEditNoChangesNotice();
+            }
+
             function populateViewModal(data) {
                 const descEl = document.getElementById('viewExpenseDescription');
                 const amountEl = document.getElementById('viewExpenseAmount');
@@ -818,6 +860,9 @@ else
                         delete modalEl.dataset.preserveExpenseDraft;
                         setupSpendiSelects(modalEl);
                         syncSpendiSelectValidation(form);
+                        if (typeof options.onAfterOpen === 'function') {
+                            options.onAfterOpen();
+                        }
                         return;
                     }
                     if (typeof options.onReset === 'function') {
@@ -890,7 +935,25 @@ else
             function setupEditExpenseForm() {
                 const editModal = document.getElementById('editExpenseModal');
                 const editForm = document.getElementById('editExpenseForm');
-                setupExpenseModalForm(editModal, editForm, {});
+                if (!editModal || !editForm) return;
+
+                setupExpenseModalForm(editModal, editForm, {
+                    onAfterOpen: function () {
+                        refreshEditExpenseSnapshot(editForm);
+                    }
+                });
+
+                editForm.addEventListener('submit', function (e) {
+                    if (!hasEditExpenseChanges(editForm)) {
+                        e.preventDefault();
+                        showEditNoChangesNotice();
+                        return;
+                    }
+                    hideEditNoChangesNotice();
+                });
+
+                editForm.addEventListener('input', hideEditNoChangesNotice);
+                editForm.addEventListener('change', hideEditNoChangesNotice);
             }
 
             function setupBudgetBreakdownColors() {

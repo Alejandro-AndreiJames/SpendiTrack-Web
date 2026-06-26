@@ -8,25 +8,27 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="expense-detail-field">
-                    <span class="expense-detail-label">Description</span>
-                    <p class="expense-detail-value" id="viewExpenseDescription">@(Model?.Description)</p>
-                </div>
-                <div class="expense-detail-field">
-                    <span class="expense-detail-label">Amount</span>
-                    <p class="expense-detail-value expense-detail-value--amount" id="viewExpenseAmount">
-                        @(Model != null ? Model.Amount.ToString("C") : "")
-                    </p>
-                </div>
-                <div class="expense-detail-field">
-                    <span class="expense-detail-label">Date</span>
-                    <p class="expense-detail-value" id="viewExpenseDate">
-                        @(Model?.Date.ToString("MMMM d, yyyy"))
-                    </p>
-                </div>
-                <div class="expense-detail-field expense-detail-field--last">
-                    <span class="expense-detail-label">Category</span>
-                    <p class="expense-detail-value" id="viewExpenseCategory">@(Model?.Category)</p>
+                <div class="expense-detail-grid">
+                    <div class="category-budget-chip expense-detail-chip expense-detail-chip--hero">
+                        <span class="category-budget-chip__name">Amount</span>
+                        <span class="category-budget-chip__amount" id="viewExpenseAmount">
+                            @(Model != null ? Model.Amount.ToString("C") : "")
+                        </span>
+                    </div>
+                    <div class="category-budget-chip expense-detail-chip expense-detail-chip--wide">
+                        <span class="category-budget-chip__name">Description</span>
+                        <span class="expense-detail-chip__value" id="viewExpenseDescription">@(Model?.Description)</span>
+                    </div>
+                    <div class="category-budget-chip expense-detail-chip">
+                        <span class="category-budget-chip__name">Date</span>
+                        <span class="expense-detail-chip__value" id="viewExpenseDate">
+                            @(Model?.Date.ToString("MMMM d, yyyy"))
+                        </span>
+                    </div>
+                    <div class="category-budget-chip expense-detail-chip">
+                        <span class="category-budget-chip__name">Category</span>
+                        <span class="expense-detail-chip__value" id="viewExpenseCategory">@(Model?.Category)</span>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
