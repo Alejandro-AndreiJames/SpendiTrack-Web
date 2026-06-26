@@ -158,7 +158,7 @@ namespace SpendiTrackWeb.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: Search — legacy route
+        // GET: Search — legacy route (redirect to Tracker)
         public IActionResult ShowSearchForm()
         {
             return RedirectToAction(nameof(Index));
@@ -181,20 +181,6 @@ namespace SpendiTrackWeb.Controllers
             }
 
             return PartialView("_TransactionHistoryPanel", model);
-        }
-
-        // POST: Search — fallback redirect for non-JS clients
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult ShowSearchResults(string? searchPhrase)
-        {
-            var trimmed = searchPhrase?.Trim();
-            if (string.IsNullOrWhiteSpace(trimmed))
-            {
-                return RedirectToAction(nameof(Index));
-            }
-
-            return RedirectToAction(nameof(Index), new { search = trimmed });
         }
 
         // GET: Expenses/Details/5
@@ -327,7 +313,10 @@ namespace SpendiTrackWeb.Controllers
                 return NotFound();
             }
 
-            return View(expense);
+            var model = await LoadIndexViewModelAsync();
+            model.DeleteExpense = expense;
+            model.OpenDeleteExpenseModal = true;
+            return View("Index", model);
         }
 
         // POST: Expenses/Delete/5

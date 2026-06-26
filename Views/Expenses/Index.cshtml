@@ -9,6 +9,7 @@
     var openEditExpenseModal = Model.OpenEditExpenseModal;
     var editExpenseForModal = Model.EditExpense ?? new Expense { Date = DateTime.Today };
     var openViewExpenseModal = Model.OpenViewExpenseModal;
+    var openDeleteExpenseModal = Model.OpenDeleteExpenseModal;
 }
 
 <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
@@ -27,7 +28,8 @@
      data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()"
      data-open-add-expense-modal="@openAddExpenseModal.ToString().ToLowerInvariant()"
      data-open-edit-expense-modal="@openEditExpenseModal.ToString().ToLowerInvariant()"
-     data-open-view-expense-modal="@openViewExpenseModal.ToString().ToLowerInvariant()">
+     data-open-view-expense-modal="@openViewExpenseModal.ToString().ToLowerInvariant()"
+     data-open-delete-expense-modal="@openDeleteExpenseModal.ToString().ToLowerInvariant()">
 
 @if (!ViewData.ModelState.IsValid && !Model.OpenAddExpenseModal && !Model.OpenEditExpenseModal)
 {
@@ -381,6 +383,7 @@ else
 <partial name="_AddExpenseModal" model="expenseForModal" />
 <partial name="_EditExpenseModal" model="editExpenseForModal" />
 <partial name="_ViewExpenseModal" model="Model.ViewExpense" />
+<partial name="_DeleteExpenseModal" model="Model.DeleteExpense" />
 
 @section Scripts {
     @{
@@ -392,6 +395,7 @@ else
             const openAddExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openAddExpenseModal === 'true';
             const openEditExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openEditExpenseModal === 'true';
             const openViewExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openViewExpenseModal === 'true';
+            const openDeleteExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openDeleteExpenseModal === 'true';
 
             function formatMoney(value) {
                 return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(value);
@@ -682,6 +686,27 @@ else
                 }
             }
 
+            function populateDeleteModal(data) {
+                const idInput = document.getElementById('DeleteExpense_Id');
+                const descEl = document.getElementById('deleteExpenseDescription');
+                const amountEl = document.getElementById('deleteExpenseAmount');
+                const dateEl = document.getElementById('deleteExpenseDate');
+                const categoryEl = document.getElementById('deleteExpenseCategory');
+
+                if (idInput) idInput.value = data.id;
+                if (descEl) descEl.textContent = data.description;
+                if (amountEl) amountEl.textContent = formatMoney(parseFloat(data.amount) || 0);
+                if (dateEl) {
+                    const parsed = new Date(data.date + 'T00:00:00');
+                    dateEl.textContent = parsed.toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                if (categoryEl) categoryEl.textContent = data.category;
+            }
+
             function setSpendiSelectValue(modalEl, category) {
                 const native = modalEl?.querySelector('.spendi-select__native');
                 if (!native) return;
@@ -844,6 +869,12 @@ else
                         populateEditModal(data);
                         editModal.dataset.preserveExpenseDraft = 'true';
                         bootstrap.Modal.getOrCreateInstance(editModal).show();
+                        return;
+                    }
+
+                    if (action === 'delete') {
+                        populateDeleteModal(data);
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteExpenseModal')).show();
                     }
                 });
 
@@ -1128,6 +1159,13 @@ else
 
             if (openViewExpenseModalFlag) {
                 const modalEl = document.getElementById('viewExpenseModal');
+                if (modalEl) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                }
+            }
+
+            if (openDeleteExpenseModalFlag) {
+                const modalEl = document.getElementById('deleteExpenseModal');
                 if (modalEl) {
                     bootstrap.Modal.getOrCreateInstance(modalEl).show();
                 }

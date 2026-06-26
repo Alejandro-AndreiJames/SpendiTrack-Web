@@ -42,5 +42,9 @@ namespace SpendiTrackWeb.Models
         public bool OpenViewExpenseModal { get; set; }
         public Expense? EditExpense { get; set; }
         public bool OpenEditExpenseModal { get; set; }
+
+        // Delete expense modal
+        public Expense? DeleteExpense { get; set; }
+        public bool OpenDeleteExpenseModal { get; set; }
     }
 }

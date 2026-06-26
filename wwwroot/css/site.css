@@ -1368,30 +1368,6 @@ input[type="number"]::-webkit-inner-spin-button {
   margin: 0 0.35rem;
 }
 
-/* Detail cards */
-.detail-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.5rem;
-}
-
-.detail-card dt {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.detail-card dd {
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-.detail-card dd.amount {
-  color: var(--gold);
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
 /* R3 — Monthly budget breakdown */
 .budget-breakdown {
   --budget-savings-color: #a8892a;
@@ -1701,7 +1677,8 @@ input[type="number"]::-webkit-inner-spin-button {
 /* Expense modals (add / edit / view) */
 #addExpenseModal .expense-modal__dialog,
 #editExpenseModal .expense-modal__dialog,
-#viewExpenseModal .expense-modal__dialog {
+#viewExpenseModal .expense-modal__dialog,
+#deleteExpenseModal .expense-modal__dialog {
   max-width: 440px;
   width: calc(100% - 2rem);
   margin-left: auto;
@@ -1711,7 +1688,8 @@ input[type="number"]::-webkit-inner-spin-button {
 @media (max-width: 575.98px) {
   #addExpenseModal .expense-modal__dialog,
   #editExpenseModal .expense-modal__dialog,
-  #viewExpenseModal .expense-modal__dialog {
+  #viewExpenseModal .expense-modal__dialog,
+  #deleteExpenseModal .expense-modal__dialog {
     width: calc(100% - 1.5rem);
     margin: 0.75rem auto;
   }
@@ -1843,6 +1821,17 @@ input[type="number"]::-webkit-inner-spin-button {
   background: rgba(212, 175, 55, 0.12);
   border: 1px solid var(--gold-dark);
   color: var(--gold);
+}
+
+.expense-delete-notice {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: center;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.45);
+  color: #ff8a80;
 }
 
 /* Custom category dropdown — rounded menu + gray placeholder */
