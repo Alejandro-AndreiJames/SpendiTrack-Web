@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SpendiTrack">
+  <path d="M352 176 C352 123 309 80 256 80 C203 80 160 123 160 176 C160 248 352 264 352 336 C352 389 309 432 256 432 C203 432 160 389 160 336"
+        fill="none"
+        stroke="#D39E36"
+        stroke-width="96"
+        stroke-linecap="round" />
+</svg>

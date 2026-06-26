@@ -1,4 +1,6 @@
-﻿@{
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@{
     ViewData["Title"] = "Home";
 }
 
@@ -7,8 +9,14 @@
     <h1>SpendiTrack</h1>
     <p class="tagline">Your personal expenditure tracker and budget calculator. Record spending, see summaries, and plan what you can afford.</p>
     <div class="action-links">
-        <a asp-controller="Expenses" asp-action="Index" class="btn btn-gold btn-lg">Open Tracker</a>
-        <a asp-controller="Expenses" asp-action="Index" class="btn btn-outline-gold btn-lg">Add Expense</a>
+        @if (SignInManager.IsSignedIn(User))
+        {
+            <a asp-controller="Expenses" asp-action="Index" class="btn btn-gold btn-lg">Go to Tracker</a>
+        }
+        else
+        {
+            <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-gold btn-lg">Get Started</a>
+        }
     </div>
 </section>
 
