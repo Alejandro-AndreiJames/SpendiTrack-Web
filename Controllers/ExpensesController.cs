@@ -183,6 +183,14 @@ namespace SpendiTrackWeb.Controllers
             return PartialView("_TransactionHistoryPanel", model);
         }
 
+        // GET: Category utilization refresh (after expense changes)
+        [HttpGet]
+        public async Task<IActionResult> RefreshCategoryUtilization()
+        {
+            var model = await LoadIndexViewModelAsync();
+            return PartialView("_CategoryUtilization", model);
+        }
+
         // GET: Expenses/Details/5
         public async Task<IActionResult> Details(int? id)
         {
@@ -328,11 +336,32 @@ namespace SpendiTrackWeb.Controllers
             if (expense != null)
             {
                 _context.Expense.Remove(expense);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
+            if (IsAjaxRequest(Request))
+            {
+                var model = await LoadIndexViewModelAsync();
+                return Json(new
+                {
+                    success = true,
+                    stats = new
+                    {
+                        model.HasBudgetSetup,
+                        model.MonthlyTotal,
+                        model.RemainingBudget,
+                        model.TotalAmount,
+                        model.TransactionCount,
+                        model.AverageAmount
+                    }
+                });
+            }
+
             return RedirectToAction(nameof(Index));
         }
+
+        private static bool IsAjaxRequest(HttpRequest request) =>
+            string.Equals(request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.Ordinal);
 
         private async Task<IdentityUser?> GetCurrentUserAsync()
         {
