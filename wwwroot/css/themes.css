@@ -1,0 +1,275 @@
+/* SpendiTrack — user-selectable themes (swap via html[data-theme]) */
+
+html[data-theme="classic"],
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-muted: #1e40af;
+  --primary-rgb: 37, 99, 235;
+  --text: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --danger-rgb: 220, 38, 38;
+  --border: #e2e8f0;
+  --on-primary: #ffffff;
+  --navbar-gradient-start: #ffffff;
+  --budget-savings-default: #16a34a;
+  --budget-fixed-default: #dc2626;
+  --budget-limit-default: #2563eb;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%232563eb' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="light"] {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --surface-2: #eeeeea;
+  --primary: #c89b3c;
+  --primary-hover: #a87d24;
+  --primary-muted: #8f6820;
+  --primary-rgb: 200, 155, 60;
+  --text: #1a1a1a;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --success: #22a06b;
+  --danger: #d64545;
+  --danger-rgb: 214, 69, 69;
+  --border: #dddddd;
+  --on-primary: #ffffff;
+  --navbar-gradient-start: #ffffff;
+  --budget-savings-default: #22a06b;
+  --budget-fixed-default: #d64545;
+  --budget-limit-default: #c89b3c;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23c89b3c' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="midnight"] {
+  --bg: #050816;
+  --surface: #111827;
+  --surface-2: #1f2937;
+  --primary: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-muted: #2563eb;
+  --primary-rgb: 96, 165, 250;
+  --text: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --success: #34d399;
+  --danger: #f87171;
+  --danger-rgb: 248, 113, 113;
+  --border: #374151;
+  --on-primary: #050816;
+  --navbar-gradient-start: #0b1220;
+  --budget-savings-default: #34d399;
+  --budget-fixed-default: #f87171;
+  --budget-limit-default: #60a5fa;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2360a5fa' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="ocean"] {
+  --bg: #071a2b;
+  --surface: #0d2a44;
+  --surface-2: #123b5d;
+  --primary: #38bdf8;
+  --primary-hover: #0ea5e9;
+  --primary-muted: #0284c7;
+  --primary-rgb: 56, 189, 248;
+  --text: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --success: #2dd4bf;
+  --danger: #fb7185;
+  --danger-rgb: 251, 113, 133;
+  --border: #1e496e;
+  --on-primary: #071a2b;
+  --navbar-gradient-start: #0a2238;
+  --budget-savings-default: #2dd4bf;
+  --budget-fixed-default: #fb7185;
+  --budget-limit-default: #38bdf8;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2338bdf8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="pastel"] {
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --surface-2: #f3eee7;
+  --primary: #c08457;
+  --primary-hover: #a66b40;
+  --primary-muted: #8b5633;
+  --primary-rgb: 192, 132, 87;
+  --text: #3f3f46;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+  --success: #7ccfa3;
+  --danger: #f59aa3;
+  --danger-rgb: 245, 154, 163;
+  --border: #e8ddd0;
+  --on-primary: #ffffff;
+  --navbar-gradient-start: #fffdfb;
+  --budget-savings-default: #7ccfa3;
+  --budget-fixed-default: #f59aa3;
+  --budget-limit-default: #c08457;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23c08457' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="rose"] {
+  --bg: #1b0b12;
+  --surface: #2a111c;
+  --surface-2: #3a1625;
+  --primary: #f472b6;
+  --primary-hover: #ec4899;
+  --primary-muted: #db2777;
+  --primary-rgb: 244, 114, 182;
+  --text: #fff1f8;
+  --text-secondary: #e8c4d4;
+  --text-muted: #d1a5b8;
+  --success: #6ee7b7;
+  --danger: #fb7185;
+  --danger-rgb: 251, 113, 133;
+  --border: #5a203b;
+  --on-primary: #1b0b12;
+  --navbar-gradient-start: #220f18;
+  --budget-savings-default: #6ee7b7;
+  --budget-fixed-default: #fb7185;
+  --budget-limit-default: #f472b6;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23f472b6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="growth"] {
+  --bg: #07140f;
+  --surface: #10261c;
+  --surface-2: #173b2b;
+  --primary: #34d399;
+  --primary-hover: #10b981;
+  --primary-muted: #059669;
+  --primary-rgb: 52, 211, 153;
+  --text: #ecfdf5;
+  --text-secondary: #bbf7d0;
+  --text-muted: #9ca3af;
+  --success: #a3e635;
+  --danger: #fb7185;
+  --danger-rgb: 251, 113, 133;
+  --border: #24543e;
+  --on-primary: #07140f;
+  --navbar-gradient-start: #0a1a14;
+  --budget-savings-default: #a3e635;
+  --budget-fixed-default: #fb7185;
+  --budget-limit-default: #34d399;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2334d399' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="luxury"] {
+  --bg: #0b0b0b;
+  --surface: #1a1a1a;
+  --surface-2: #222222;
+  --primary: #d4af37;
+  --primary-hover: #e7c65a;
+  --primary-muted: #a8892a;
+  --primary-rgb: 212, 175, 55;
+  --text: #ffffff;
+  --text-secondary: #d8d8d8;
+  --text-muted: #a8a8a8;
+  --success: #4fd1a1;
+  --danger: #c0446b;
+  --danger-rgb: 192, 68, 107;
+  --border: #333333;
+  --on-primary: #0b0b0b;
+  --navbar-gradient-start: #141414;
+  --budget-savings-default: #a8892a;
+  --budget-fixed-default: #c0446b;
+  --budget-limit-default: #d4af37;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23d4af37' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="sky"] {
+  --bg: #f0f9ff;
+  --surface: #ffffff;
+  --surface-2: #e0f2fe;
+  --primary: #38bdf8;
+  --primary-hover: #0ea5e9;
+  --primary-muted: #0284c7;
+  --primary-rgb: 56, 189, 248;
+  --text: #334155;
+  --text-secondary: #475569;
+  --text-muted: #7c8ea3;
+  --success: #86efac;
+  --danger: #fda4af;
+  --danger-rgb: 253, 164, 175;
+  --border: #bae6fd;
+  --on-primary: #ffffff;
+  --navbar-gradient-start: #f0f9ff;
+  --budget-savings-default: #86efac;
+  --budget-fixed-default: #fda4af;
+  --budget-limit-default: #38bdf8;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2338bdf8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+html[data-theme="lavender"] {
+  --bg: #faf5ff;
+  --surface: #ffffff;
+  --surface-2: #f3e8ff;
+  --primary: #a855f7;
+  --primary-hover: #9333ea;
+  --primary-muted: #7e22ce;
+  --primary-rgb: 168, 85, 247;
+  --text: #312e81;
+  --text-secondary: #4c1d95;
+  --text-muted: #7c6f9b;
+  --success: #4ade80;
+  --danger: #fb7185;
+  --danger-rgb: 251, 113, 133;
+  --border: #e9d5ff;
+  --on-primary: #ffffff;
+  --navbar-gradient-start: #faf5ff;
+  --budget-savings-default: #4ade80;
+  --budget-fixed-default: #fb7185;
+  --budget-limit-default: #a855f7;
+  --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23a855f7' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* Map semantic tokens → existing app variables */
+html {
+  --bg-base: var(--bg);
+  --bg-surface: var(--surface);
+  --bg-elevated: var(--surface-2);
+  --gold: var(--primary);
+  --gold-light: var(--primary-hover);
+  --gold-dark: var(--primary-muted);
+  --text-primary: var(--text);
+  --danger-soft: var(--danger);
+
+  --bs-body-bg: var(--bg);
+  --bs-body-color: var(--text);
+  --bs-secondary-color: var(--text-secondary);
+  --bs-secondary-bg: var(--surface);
+  --bs-tertiary-color: var(--text-muted);
+  --bs-tertiary-bg: var(--surface-2);
+  --bs-emphasis-color: var(--text);
+  --bs-heading-color: var(--text);
+  --bs-link-color: var(--primary-hover);
+  --bs-link-hover-color: var(--primary);
+  --bs-border-color: var(--border);
+
+  --bs-form-valid-color: var(--gold-light);
+  --bs-form-valid-border-color: var(--gold-dark);
+  --bs-form-invalid-color: var(--danger);
+  --bs-form-invalid-border-color: var(--danger);
+  --bs-primary: var(--primary);
+  --bs-primary-rgb: var(--primary-rgb);
+
+  --navbar-toggler-invert: 0;
+  color-scheme: dark;
+}
+
+html[data-theme="light"],
+html[data-theme="pastel"],
+html[data-theme="classic"],
+html[data-theme="sky"],
+html[data-theme="lavender"] {
+  --navbar-toggler-invert: 1;
+  color-scheme: light;
+}
