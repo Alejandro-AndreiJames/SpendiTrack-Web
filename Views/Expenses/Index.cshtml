@@ -1157,10 +1157,15 @@ else
 
                 const userKey = panel.dataset.userKey || 'anon';
                 const key = 'spenditrack.breakdown.colors.' + userKey;
+                function readThemeDefault(cssVar, fallback) {
+                    const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+                    return value || fallback;
+                }
+
                 const defaultColors = {
-                    savings: '#a8892a',
-                    fixed: '#6b6b6b',
-                    limit: '#d4af37'
+                    savings: readThemeDefault('--budget-savings-default', '#a8892a'),
+                    fixed: readThemeDefault('--budget-fixed-default', '#c0446b'),
+                    limit: readThemeDefault('--budget-limit-default', '#d4af37')
                 };
 
                 function sanitizeHex(input, fallback) {

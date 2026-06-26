@@ -3,46 +3,43 @@
 }
 
 <div class="page-header mb-4">
-    <h1 class="text-white fw-bold">About SpendiTrack</h1>
+    <h1>About SpendiTrack</h1>
     <p class="text-muted small">Version 1.0.0 — Financial Clarity Made Simple</p>
 </div>
 
-<div class="form-panel p-4 p-md-5 rounded-3 mb-4" style="background-color: #121212; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-    <!-- Primary Application Purpose -->
+<div class="form-panel about-panel p-4 p-md-5 rounded-3 mb-4">
     <div class="mb-5">
-        <h3 class="text-warning fw-semibold mb-3">Our Core Purpose</h3>
-        <p class="fs-5 text-white-50" style="line-height: 1.6;">
+        <h3 class="about-section-title mb-3">Our Core Purpose</h3>
+        <p class="about-body fs-5">
             SpendiTrack is an ASP.NET Core MVC web app for tracking personal expenses and estimating budgets.
             By eliminating disorganized spreadsheets, it provides a centralized platform to visualize your spending habits,
             set healthy savings goals, and understand exactly where your money goes.
         </p>
     </div>
 
-    <!-- Underlying Frameworks and Infrastructure -->
     <div>
-        <h3 class="text-warning fw-semibold mb-3">Architecture & Core Security</h3>
-        <p class="fs-5 text-white-50 mb-4" style="line-height: 1.6;">
+        <h3 class="about-section-title mb-3">Architecture &amp; Core Security</h3>
+        <p class="about-body fs-5 mb-4">
             Built with Entity Framework Core, SQL Server LocalDB, and ASP.NET Identity for secure sign-in when adding or editing records.
         </p>
 
-        <!-- Technical Highlights Grid -->
         <div class="row g-4 mt-2">
             <div class="col-md-4">
-                <div class="p-3 rounded-2" style="background-color: #1a1a1a;">
-                    <h5 class="text-white mb-2">🔐 Identity Guarding</h5>
-                    <p class="text-muted small mb-0">Protects your database logs by ensuring private tracker routes are completely inaccessible to unauthenticated visitors.</p>
+                <div class="about-feature-card">
+                    <h5 class="about-feature-card__title">🔐 Identity Guarding</h5>
+                    <p class="small mb-0">Protects your database logs by ensuring private tracker routes are completely inaccessible to unauthenticated visitors.</p>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="p-3 rounded-2" style="background-color: #1a1a1a;">
-                    <h5 class="text-white mb-2">💾 Data Persistence</h5>
-                    <p class="text-muted small mb-0">Uses Entity Framework Core paired with SQL Server LocalDB to store and query your transactional history rapidly.</p>
+                <div class="about-feature-card">
+                    <h5 class="about-feature-card__title">💾 Data Persistence</h5>
+                    <p class="small mb-0">Uses Entity Framework Core paired with SQL Server LocalDB to store and query your transactional history rapidly.</p>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="p-3 rounded-2" style="background-color: #1a1a1a;">
-                    <h5 class="text-white mb-2">⚡ Proactive Planning</h5>
-                    <p class="text-muted small mb-0">Instantly calculates expected daily or weekly spending limits right after subtracting your fixed monthly liabilities.</p>
+                <div class="about-feature-card">
+                    <h5 class="about-feature-card__title">⚡ Proactive Planning</h5>
+                    <p class="small mb-0">Instantly calculates expected daily or weekly spending limits right after subtracting your fixed monthly liabilities.</p>
                 </div>
             </div>
         </div>
