@@ -1,8 +1,21 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using SpendiTrackWeb.Data;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var philippineCulture = new CultureInfo("en-PH");
+CultureInfo.DefaultThreadCurrentCulture = philippineCulture;
+CultureInfo.DefaultThreadCurrentUICulture = philippineCulture;
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new RequestCulture(philippineCulture);
+    options.SupportedCultures = [philippineCulture];
+    options.SupportedUICultures = [philippineCulture];
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -39,6 +52,7 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseRequestLocalization();
 app.UseRouting();
 
 app.UseAuthentication();

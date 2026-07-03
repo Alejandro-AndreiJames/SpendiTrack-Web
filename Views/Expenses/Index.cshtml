@@ -460,7 +460,7 @@ else
             }
 
             function formatMoney(value) {
-                return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(value);
+                return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
             }
 
             function setupEditPanel(btnEditId, btnCancelId, viewId, editId, onCancel) {
