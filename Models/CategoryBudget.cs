@@ -8,6 +8,7 @@ namespace SpendiTrackWeb.Models
         public int Id { get; set; }
 
         [Required]
+        [MaxLength(450)]
         public string UserId { get; set; } = string.Empty;
 
         [Required]
@@ -17,5 +18,9 @@ namespace SpendiTrackWeb.Models
         [Column(TypeName = "decimal(18, 2)")]
         [Range(0, double.MaxValue)]
         public decimal AllocatedAmount { get; set; }
+
+        public int Year { get; set; }
+
+        public int Month { get; set; }
     }
 }

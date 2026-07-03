@@ -13,5 +13,9 @@ namespace SpendiTrackWeb.Models
 
         [Range(0, double.MaxValue)]
         public decimal FixedMonthlyCosts { get; set; }
+
+        public int? Year { get; set; }
+
+        public int? Month { get; set; }
     }
 }

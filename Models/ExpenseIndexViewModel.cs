@@ -12,6 +12,19 @@ namespace SpendiTrackWeb.Models
             new Dictionary<string, decimal>();
         public string? SearchPhrase { get; set; }
 
+        // Selected tracker month
+        public int SelectedYear { get; set; }
+        public int SelectedMonth { get; set; }
+        public bool IsCurrentMonth { get; set; }
+        public string SelectedMonthLabel { get; set; } = string.Empty;
+        public List<TrackerMonthOption> AvailableMonths { get; set; } = new();
+        public bool HasPreviousMonth { get; set; }
+        public int PreviousYear { get; set; }
+        public int PreviousMonth { get; set; }
+        public bool HasNextMonth { get; set; }
+        public int NextYear { get; set; }
+        public int NextMonth { get; set; }
+
         // Income / limit feature
         public bool HasBudgetSetup { get; set; }
         public decimal MonthlyIncome { get; set; }

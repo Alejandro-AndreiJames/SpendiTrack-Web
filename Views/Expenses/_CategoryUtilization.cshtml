@@ -4,7 +4,7 @@
     <div class="tracker-section-header">
         <div>
             <h2 class="h5 mb-1" style="color: var(--gold);">Monthly category utilization</h2>
-            <p class="help-text mb-0">Progress against your allocated limits this month.</p>
+            <p class="help-text mb-0">@(Model.IsCurrentMonth ? "Progress against your allocated limits this month." : $"Progress against your allocated limits in {Model.SelectedMonthLabel}.")</p>
         </div>
     </div>
 

@@ -60,10 +60,17 @@
         else
         {
             <div class="tracker-inline-empty tracker-inline-empty--fill">
-                <p class="mb-2">No transactions recorded yet.</p>
-                <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                    Add your first expense
-                </button>
+                @if (Model.IsCurrentMonth)
+                {
+                    <p class="mb-2">No transactions recorded yet.</p>
+                    <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                        Add your first expense
+                    </button>
+                }
+                else
+                {
+                    <p class="mb-0">No transactions recorded for @Model.SelectedMonthLabel.</p>
+                }
             </div>
         }
     </div>

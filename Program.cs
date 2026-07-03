@@ -17,6 +17,8 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<SpendiTrackWeb.Services.BudgetCalculator>();
+builder.Services.AddScoped<SpendiTrackWeb.Services.MonthlyBudgetService>();
+builder.Services.AddScoped<SpendiTrackWeb.Services.TrackerAccessService>();
 
 var app = builder.Build();
 
