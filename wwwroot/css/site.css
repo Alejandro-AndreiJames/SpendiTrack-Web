@@ -466,8 +466,477 @@ a:hover {
 
 .page-header {
   margin-bottom: var(--tracker-stack-gap);
-  padding-bottom: 1rem;
+  padding-bottom: 0.85rem;
   border-bottom: 1px solid var(--border);
+}
+
+/* Tracker page header — title + month picker + actions on one row */
+.tracker-header__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.tracker-header__copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tracker-header__copy h1 {
+  margin-bottom: 0.15rem;
+}
+
+.tracker-header__copy .lead {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.tracker-header__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.tracker-header__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.tracker-header__add {
+  white-space: nowrap;
+}
+
+.tracker-header--historical .tracker-header__row {
+  align-items: flex-start;
+}
+
+/* Tablet + desktop — align controls with subtitle; equal control heights */
+@media (min-width: 768px) {
+  .tracker-header:not(.tracker-header--historical) .tracker-header__row {
+    align-items: flex-end;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-header__controls {
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav__group,
+  .tracker-header:not(.tracker-header--historical) .tracker-header__add {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    box-sizing: border-box;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav__arrow {
+    width: 2.25rem;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav__toggle {
+    padding: 0 0.75rem !important;
+    height: 100%;
+    align-self: stretch;
+    font-size: 0.875rem;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav__label {
+    max-width: 11rem;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-header__add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1.15rem;
+    font-size: 0.875rem;
+    line-height: 1;
+  }
+}
+
+/* Month picker — matches theme picker dropdown styling */
+.tracker-period-nav {
+  position: relative;
+}
+
+.tracker-period-nav__group {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.tracker-period-nav__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--gold);
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tracker-period-nav__arrow:first-child {
+  border-right: 1px solid var(--border);
+  border-radius: 10px 0 0 10px;
+}
+
+.tracker-period-nav__arrow:last-child {
+  border-left: 1px solid var(--border);
+  border-radius: 0 10px 10px 0;
+}
+
+.tracker-period-nav__arrow:hover:not(.tracker-period-nav__arrow--disabled) {
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--gold-light);
+}
+
+.tracker-period-nav__arrow--disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+.tracker-period-nav__dropdown {
+  position: relative;
+  min-width: 0;
+}
+
+.tracker-period-nav__toggle {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.tracker-period-nav__icon {
+  flex-shrink: 0;
+  color: var(--gold);
+}
+
+.tracker-period-nav__label {
+  max-width: 9.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tracker-period-nav__toggle.dropdown-toggle::after {
+  margin-left: 0.1rem;
+  border-top-color: var(--gold) !important;
+  vertical-align: 0.15em;
+}
+
+.tracker-period-nav__toggle:hover,
+.tracker-period-nav__toggle:focus,
+.tracker-period-nav__toggle.show {
+  color: var(--gold) !important;
+  background: rgba(var(--primary-rgb), 0.1) !important;
+}
+
+.tracker-period-nav__menu {
+  --tracker-period-option-height: 2.35rem;
+  min-width: 11.5rem;
+  max-height: calc(var(--tracker-period-option-height) * 4 + 0.7rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.35rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-dark) transparent;
+}
+
+.tracker-period-nav__menu::-webkit-scrollbar {
+  width: 5px;
+}
+
+.tracker-period-nav__menu::-webkit-scrollbar-thumb {
+  background: var(--gold-dark);
+  border-radius: 4px;
+}
+
+.tracker-period-nav__menu > li {
+  margin: 0;
+}
+
+.tracker-period-nav__menu .dropdown-item {
+  min-height: var(--tracker-period-option-height);
+  padding: 0.45rem 0.65rem;
+}
+
+.tracker-period-nav__option {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  color: var(--text-primary);
+}
+
+.tracker-period-nav__option:hover,
+.tracker-period-nav__option:focus {
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--text-primary);
+}
+
+.tracker-period-nav__option.active {
+  background: rgba(var(--primary-rgb), 0.18);
+  color: var(--gold-light);
+  font-weight: 600;
+}
+
+.tracker-period-nav__option.active::after {
+  content: "✓";
+  margin-left: auto;
+  color: var(--gold);
+  font-size: 0.85rem;
+}
+
+.tracker-period-nav__option-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--gold);
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.tracker-period-nav__option-name {
+  flex: 1;
+  text-align: left;
+}
+
+.tracker-period-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.tracker-period-banner__text {
+  white-space: nowrap;
+}
+
+.tracker-period-banner__link {
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tracker-period-banner__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+/* Mobile-only historical row (hidden on desktop) */
+.tracker-header__historical-meta {
+  display: none;
+}
+
+.tracker-header__return-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+/* Mobile tracker header layouts */
+@media (max-width: 767.98px) {
+  body > .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .tracker-header__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+  }
+
+  .tracker-header__copy h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .tracker-header__copy .lead {
+    font-size: 0.875rem;
+  }
+
+  .tracker-header__aside {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .tracker-header__controls {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  /* Present month — calendar 70%, add expense 30% */
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav {
+    flex: 7 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav__group {
+    width: 100%;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav__dropdown,
+  .tracker-header--historical .tracker-period-nav__dropdown {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav__toggle {
+    width: 100%;
+    justify-content: center;
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-period-nav__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tracker-header:not(.tracker-header--historical) .tracker-header__add {
+    flex: 3 1 0;
+    min-width: 0;
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.4rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  /* Historical month — viewing + return on one row, full-width calendar below */
+  .tracker-header--historical .tracker-header__viewing-desktop {
+    display: none;
+  }
+
+  .tracker-header--historical .tracker-period-banner--desktop {
+    display: none !important;
+  }
+
+  .tracker-header--historical .tracker-header__historical-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    order: 2;
+  }
+
+  .tracker-header--historical .tracker-header__copy {
+    order: 1;
+  }
+
+  .tracker-header--historical .tracker-header__aside {
+    order: 3;
+  }
+
+  .tracker-header__viewing-mobile {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .tracker-header__return-link {
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    color: var(--gold);
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .tracker-header--historical .tracker-period-nav {
+    width: 100%;
+  }
+
+  .tracker-header--historical .tracker-period-nav__group {
+    width: 100%;
+  }
+
+  .tracker-header--historical .tracker-period-nav__dropdown {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tracker-header--historical .tracker-period-nav__toggle {
+    flex: 1;
+    width: 100%;
+    justify-content: center;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .tracker-header--historical .tracker-period-nav__label {
+    max-width: none;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .page-header.tracker-header {
+    padding-bottom: 0.65rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tracker-page {
+    --tracker-stack-gap: 0.75rem;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .tracker-page .row.tracker-stats,
+  .tracker-page .row.tracker-overview,
+  .tracker-page .row.tracker-activity {
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 
 @media (max-width: 991.98px) {
@@ -1655,6 +2124,8 @@ input[type="number"]::-webkit-inner-spin-button {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto auto auto;
     gap: 0.75rem;
+    min-width: 0;
+    width: 100%;
   }
 
   .budget-breakdown__header {
@@ -1686,6 +2157,7 @@ input[type="number"]::-webkit-inner-spin-button {
   .budget-breakdown__color-tools {
     justify-content: flex-start;
     gap: 0.45rem;
+    width: 100%;
   }
 
   .budget-breakdown__color-item {

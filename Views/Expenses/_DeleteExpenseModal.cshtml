@@ -10,6 +10,8 @@
             <form asp-action="Delete" method="post" id="deleteExpenseForm">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="Id" id="DeleteExpense_Id" value="@(Model?.Id ?? 0)" />
+                <input type="hidden" name="year" id="DeleteExpense_Year" value="" />
+                <input type="hidden" name="month" id="DeleteExpense_Month" value="" />
                 <div class="modal-body">
                     <p class="expense-delete-notice">This action cannot be undone.</p>
                     <div class="expense-detail-grid">

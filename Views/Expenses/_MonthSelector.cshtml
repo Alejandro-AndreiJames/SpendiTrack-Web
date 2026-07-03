@@ -1,0 +1,87 @@
+@model SpendiTrackWeb.Models.ExpenseIndexViewModel
+
+<nav class="tracker-period-nav" aria-label="Select month">
+    <div class="tracker-period-nav__group">
+        @if (Model.HasPreviousMonth)
+        {
+            <a asp-action="Index"
+               asp-route-year="@Model.PreviousYear"
+               asp-route-month="@Model.PreviousMonth"
+               asp-route-search="@Model.SearchPhrase"
+               class="tracker-period-nav__arrow"
+               aria-label="Previous month">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </a>
+        }
+        else
+        {
+            <span class="tracker-period-nav__arrow tracker-period-nav__arrow--disabled" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </span>
+        }
+
+        <div class="dropdown tracker-period-nav__dropdown">
+            <button type="button"
+                    class="tracker-period-nav__toggle dropdown-toggle"
+                    id="trackerMonthToggle"
+                    data-bs-toggle="dropdown"
+                    data-bs-auto-close="true"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    aria-controls="trackerMonthMenu">
+                <svg class="tracker-period-nav__icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span class="tracker-period-nav__label">@Model.SelectedMonthLabel</span>
+            </button>
+            <ul class="dropdown-menu tracker-period-nav__menu"
+                id="trackerMonthMenu"
+                role="menu"
+                aria-labelledby="trackerMonthToggle">
+                @foreach (var option in Model.AvailableMonths)
+                {
+                    <li role="none">
+                        <a class="dropdown-item tracker-period-nav__option @(option.IsSelected ? "active" : "")"
+                           asp-action="Index"
+                           asp-route-year="@option.Year"
+                           asp-route-month="@option.Month"
+                           asp-route-search="@Model.SearchPhrase"
+                           role="menuitem">
+                            <span class="tracker-period-nav__option-dot" aria-hidden="true"></span>
+                            <span class="tracker-period-nav__option-name">@option.Label</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        @if (Model.HasNextMonth)
+        {
+            <a asp-action="Index"
+               asp-route-year="@Model.NextYear"
+               asp-route-month="@Model.NextMonth"
+               asp-route-search="@Model.SearchPhrase"
+               class="tracker-period-nav__arrow"
+               aria-label="Next month">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </a>
+        }
+        else
+        {
+            <span class="tracker-period-nav__arrow tracker-period-nav__arrow--disabled" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </span>
+        }
+    </div>
+</nav>

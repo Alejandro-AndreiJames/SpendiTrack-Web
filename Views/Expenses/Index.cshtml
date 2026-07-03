@@ -12,19 +12,52 @@
     var openDeleteExpenseModal = Model.OpenDeleteExpenseModal;
 }
 
-<div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
-    <div>
-        <h1>Expense Tracker</h1>
-        <p class="lead">All your recorded spending in one place.</p>
-    </div>
-    <div class="action-links">
-        <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-            + Add Expense
-        </button>
+<div class="page-header tracker-header@(Model.IsCurrentMonth ? "" : " tracker-header--historical")">
+    <div class="tracker-header__row">
+        <div class="tracker-header__copy">
+            <h1>Expense Tracker</h1>
+            @if (Model.IsCurrentMonth)
+            {
+                <p class="lead mb-0">All your recorded spending in one place.</p>
+            }
+            else
+            {
+                <p class="lead tracker-header__viewing-desktop mb-0">Viewing @Model.SelectedMonthLabel.</p>
+            }
+        </div>
+
+        @if (!Model.IsCurrentMonth)
+        {
+            <div class="tracker-header__historical-meta">
+                <p class="tracker-header__viewing-mobile mb-0">Viewing @Model.SelectedMonthLabel.</p>
+                <a asp-action="Index" class="tracker-header__return-link">Return to current month</a>
+            </div>
+        }
+
+        <div class="tracker-header__aside">
+            <div class="tracker-header__controls">
+                @await Html.PartialAsync("_MonthSelector", Model)
+                @if (Model.IsCurrentMonth)
+                {
+                    <button type="button" class="btn btn-gold tracker-header__add" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                        + Add Expense
+                    </button>
+                }
+            </div>
+            @if (!Model.IsCurrentMonth)
+            {
+                <p class="tracker-period-banner tracker-period-banner--desktop" role="status">
+                    <span class="tracker-period-banner__text">Historical view — @Model.SelectedMonthLabel only.</span>
+                    <a asp-action="Index" class="tracker-period-banner__link">Return to current month</a>
+                </p>
+            }
+        </div>
     </div>
 </div>
 
 <div class="tracker-page"
+     data-tracker-year="@Model.SelectedYear"
+     data-tracker-month="@Model.SelectedMonth"
      data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()"
      data-open-add-expense-modal="@openAddExpenseModal.ToString().ToLowerInvariant()"
      data-open-edit-expense-modal="@openEditExpenseModal.ToString().ToLowerInvariant()"
@@ -45,6 +78,8 @@
         <p class="help-text mb-3">Enter your income first so we can calculate your spending limit.</p>
         <form asp-action="SaveBudget" method="post" class="row g-3">
             @Html.AntiForgeryToken()
+            <input type="hidden" name="Year" value="@Model.SelectedYear" />
+            <input type="hidden" name="Month" value="@Model.SelectedMonth" />
             <div class="col-md-4">
                 <label class="form-label">Monthly income</label>
                 <input name="MonthlyIncome" value="@Model.MonthlyIncome"
@@ -84,7 +119,7 @@
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
-                <div class="stat-label">Spent this month</div>
+                <div class="stat-label">@(Model.IsCurrentMonth ? "Spent this month" : $"Spent in {Model.SelectedMonthLabel}")</div>
                 <div class="stat-value" data-stat="spent-month">@Model.MonthlyTotal.ToString("C")</div>
             </div>
         </div>
@@ -105,7 +140,7 @@
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
-                <div class="stat-label">This month</div>
+                <div class="stat-label">@(Model.IsCurrentMonth ? "This month" : Model.SelectedMonthLabel)</div>
                 <div class="stat-value" data-stat="spent-month">@Model.MonthlyTotal.ToString("C")</div>
             </div>
         </div>
@@ -280,6 +315,8 @@
 
                 <form asp-action="SaveBudget" method="post" class="budget-profile__edit" id="budgetProfileEdit" hidden>
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="Year" value="@Model.SelectedYear" />
+                    <input type="hidden" name="Month" value="@Model.SelectedMonth" />
                     <div class="budget-profile__field">
                         <label class="form-label">Monthly income</label>
                         <input name="MonthlyIncome" value="@Model.MonthlyIncome"
@@ -331,6 +368,8 @@
         <form asp-action="SaveCategoryBudgets" method="post" class="budget-profile__edit" id="categoryBudgetsEdit" hidden
               data-spending-limit="@Model.SpendingLimit">
             @Html.AntiForgeryToken()
+            <input type="hidden" name="Year" value="@Model.SelectedYear" />
+            <input type="hidden" name="Month" value="@Model.SelectedMonth" />
             <p class="category-budget-form-error" id="categoryBudgetFormError" hidden role="alert"></p>
             <div class="category-budget-grid category-budget-grid--edit">
                 @for (int i = 0; i < Model.CategoryAllocationForm.Count; i++)
@@ -396,6 +435,29 @@ else
             const openEditExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openEditExpenseModal === 'true';
             const openViewExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openViewExpenseModal === 'true';
             const openDeleteExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openDeleteExpenseModal === 'true';
+
+            function getTrackerPeriod() {
+                const page = document.querySelector('.tracker-page');
+                return {
+                    year: page?.dataset.trackerYear,
+                    month: page?.dataset.trackerMonth
+                };
+            }
+
+            function appendTrackerPeriod(url) {
+                const period = getTrackerPeriod();
+                if (period.year) url.searchParams.set('year', period.year);
+                if (period.month) url.searchParams.set('month', period.month);
+                return url;
+            }
+
+            function buildTrackerIndexUrl(search) {
+                const indexUrl = '@Url.Action("Index", "Expenses")';
+                const url = new URL(indexUrl, window.location.origin);
+                appendTrackerPeriod(url);
+                if (search) url.searchParams.set('search', search);
+                return url.pathname + url.search;
+            }
 
             function formatMoney(value) {
                 return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(value);
@@ -705,6 +767,12 @@ else
                     });
                 }
                 if (categoryEl) categoryEl.textContent = data.category;
+
+                const yearInput = document.getElementById('DeleteExpense_Year');
+                const monthInput = document.getElementById('DeleteExpense_Month');
+                const period = getTrackerPeriod();
+                if (yearInput) yearInput.value = period.year || '';
+                if (monthInput) monthInput.value = period.month || '';
             }
 
             function setSpendiSelectValue(modalEl, category) {
@@ -935,7 +1003,9 @@ else
                 if (!host) return;
 
                 const url = '@Url.Action("RefreshCategoryUtilization", "Expenses")';
-                const response = await fetch(url, {
+                const fetchUrl = new URL(url, window.location.origin);
+                appendTrackerPeriod(fetchUrl);
+                const response = await fetch(fetchUrl, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 if (response.ok) {
@@ -983,7 +1053,6 @@ else
                 if (!host) return;
 
                 const searchUrl = '@Url.Action("SearchTransactions", "Expenses")';
-                const indexUrl = '@Url.Action("Index", "Expenses")';
 
                 let searchInFlight = false;
 
@@ -1057,6 +1126,7 @@ else
 
                     searchInFlight = true;
                     const url = new URL(searchUrl, window.location.origin);
+                    appendTrackerPeriod(url);
                     if (trimmed) {
                         url.searchParams.set('search', trimmed);
                     }
@@ -1070,10 +1140,7 @@ else
 
                         swapTransactionHistoryPanel(await response.text());
 
-                        const nextUrl = trimmed
-                            ? indexUrl + '?search=' + encodeURIComponent(trimmed)
-                            : indexUrl;
-                        history.replaceState({ trackerSearch: trimmed }, '', nextUrl);
+                        history.replaceState({ trackerSearch: trimmed }, '', buildTrackerIndexUrl(trimmed));
 
                         await waitForPaint();
                     } finally {
