@@ -32,11 +32,11 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // GET: Expenses
-        public async Task<IActionResult> Index(int? year, int? month, string? search)
+        public async Task<IActionResult> Index(int? year, int? month, string? search, string? category)
         {
             var period = await ResolveTrackerPeriodAsync(year, month);
             var model = await LoadIndexViewModelAsync(period);
-            ApplySearchFilter(model, search);
+            ApplyTransactionFilters(model, search, category);
             return View(model);
         }
 
@@ -120,11 +120,11 @@ namespace SpendiTrackWeb.Controllers
 
         // GET: Transaction history search (partial update, no full page reload)
         [HttpGet]
-        public async Task<IActionResult> SearchTransactions(int? year, int? month, string? search)
+        public async Task<IActionResult> SearchTransactions(int? year, int? month, string? search, string? category)
         {
             var period = await ResolveTrackerPeriodAsync(year, month);
             var model = await LoadIndexViewModelAsync(period);
-            ApplySearchFilter(model, search);
+            ApplyTransactionFilters(model, search, category);
             return PartialView("_TransactionHistoryPanel", model);
         }
 
@@ -563,17 +563,29 @@ namespace SpendiTrackWeb.Controllers
             return model;
         }
 
-        private static void ApplySearchFilter(ExpenseIndexViewModel model, string? search)
+        private static void ApplyTransactionFilters(ExpenseIndexViewModel model, string? search, string? category)
         {
-            var trimmedSearch = search?.Trim();
-            if (string.IsNullOrWhiteSpace(trimmedSearch))
-                return;
+            IEnumerable<Expense> filtered = model.Expenses;
 
-            model.Expenses = model.Expenses
-                .Where(e => e.Description.Contains(trimmedSearch, StringComparison.OrdinalIgnoreCase))
+            var trimmedSearch = search?.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedSearch))
+            {
+                filtered = filtered.Where(e =>
+                    e.Description.Contains(trimmedSearch, StringComparison.OrdinalIgnoreCase));
+                model.SearchPhrase = trimmedSearch;
+            }
+
+            var trimmedCategory = category?.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedCategory)
+                && ExpenseCategories.All.Contains(trimmedCategory, StringComparer.Ordinal))
+            {
+                filtered = filtered.Where(e => e.Category == trimmedCategory);
+                model.CategoryFilter = trimmedCategory;
+            }
+
+            model.Expenses = filtered
                 .OrderByDescending(e => e.Date)
                 .ToList();
-            model.SearchPhrase = trimmedSearch;
         }
 
         private async Task<IActionResult> IndexWithEditDraftAsync(Expense expense, TrackerPeriod period)

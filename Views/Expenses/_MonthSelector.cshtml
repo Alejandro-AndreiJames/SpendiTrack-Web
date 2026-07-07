@@ -8,6 +8,7 @@
                asp-route-year="@Model.PreviousYear"
                asp-route-month="@Model.PreviousMonth"
                asp-route-search="@Model.SearchPhrase"
+               asp-route-category="@Model.CategoryFilter"
                class="tracker-period-nav__arrow"
                aria-label="Previous month">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -53,6 +54,7 @@
                            asp-route-year="@option.Year"
                            asp-route-month="@option.Month"
                            asp-route-search="@Model.SearchPhrase"
+                           asp-route-category="@Model.CategoryFilter"
                            role="menuitem">
                             <span class="tracker-period-nav__option-dot" aria-hidden="true"></span>
                             <span class="tracker-period-nav__option-name">@option.Label</span>
@@ -68,6 +70,7 @@
                asp-route-year="@Model.NextYear"
                asp-route-month="@Model.NextMonth"
                asp-route-search="@Model.SearchPhrase"
+               asp-route-category="@Model.CategoryFilter"
                class="tracker-period-nav__arrow"
                aria-label="Next month">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
