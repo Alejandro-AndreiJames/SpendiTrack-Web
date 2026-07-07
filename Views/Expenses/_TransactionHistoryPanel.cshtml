@@ -1,49 +1,146 @@
 @model SpendiTrackWeb.Models.ExpenseIndexViewModel
+@using SpendiTrackWeb.Models
 
 @{
-    var isSearchActive = !string.IsNullOrWhiteSpace(Model.SearchPhrase);
+    var isFilterActive = Model.HasTransactionFilters;
     var resultCount = Model.Expenses.Count();
+    var selectedCategoryLabel = string.IsNullOrWhiteSpace(Model.CategoryFilter)
+        ? "All categories"
+        : Model.CategoryFilter;
 }
 
 <div class="form-panel tracker-activity-panel">
     <div class="tracker-section-header tracker-section-header--with-search">
         <div class="tracker-section-header__copy">
             <h2 class="h5 mb-1" style="color: var(--gold);">Transaction history</h2>
-            @if (isSearchActive)
+            @if (isFilterActive)
             {
                 <p class="help-text mb-0 tracker-history-search__status">
-                    Results for &ldquo;@Model.SearchPhrase&rdquo;
-                    (@resultCount @(resultCount == 1 ? "match" : "matches"))
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchPhrase) && !string.IsNullOrWhiteSpace(Model.CategoryFilter))
+                    {
+                        <span>&ldquo;@Model.SearchPhrase&rdquo; in <strong>@Model.CategoryFilter</strong></span>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(Model.SearchPhrase))
+                    {
+                        <span>Results for &ldquo;@Model.SearchPhrase&rdquo;</span>
+                    }
+                    else
+                    {
+                        <span>Category: <strong>@Model.CategoryFilter</strong></span>
+                    }
+                    <span>(@resultCount @(resultCount == 1 ? "match" : "matches"))</span>
                 </p>
             }
             else
             {
-                <p class="help-text mb-0">Search by description or browse your expenses, newest first.</p>
+                <p class="help-text mb-0">Search by description, filter by category, or browse newest first.</p>
             }
         </div>
-        @if (!isSearchActive && Model.Expenses.Any())
+        @if (!isFilterActive && Model.Expenses.Any())
         {
             <span class="tracker-section-header__badge">@Model.TransactionCount</span>
         }
     </div>
 
+    <div class="tracker-activity-panel__body">
     <form class="tracker-history-search"
           data-tracker-search-form
           role="search">
-        <label class="visually-hidden" for="trackerSearchPhrase">Search expenses</label>
-        <input type="search"
-               name="searchPhrase"
-               id="trackerSearchPhrase"
-               class="tracker-history-search__input form-control"
-               placeholder="Search by description…"
-               value="@Model.SearchPhrase"
-               autocomplete="off"
-               maxlength="200" />
-        <button type="submit" class="btn btn-gold btn-sm tracker-history-search__submit">Search</button>
-        @if (isSearchActive)
-        {
-            <button type="button" class="btn btn-outline-gold btn-sm tracker-history-search__clear" data-tracker-search-clear>Clear</button>
-        }
+        <input type="hidden"
+               name="category"
+               id="trackerCategoryFilter"
+               value="@Model.CategoryFilter" />
+
+        <div class="tracker-period-nav tracker-history-filter@(string.IsNullOrWhiteSpace(Model.CategoryFilter) ? "" : " tracker-history-filter--active")" aria-label="Filter by category">
+            <div class="tracker-period-nav__group">
+                <div class="dropdown tracker-period-nav__dropdown">
+                    <button type="button"
+                            class="tracker-period-nav__toggle dropdown-toggle"
+                            id="trackerCategoryToggle"
+                            data-tracker-category-toggle
+                            data-bs-toggle="dropdown"
+                            data-bs-auto-close="true"
+                            aria-expanded="false"
+                            aria-haspopup="true"
+                            aria-controls="trackerCategoryMenu"
+                            aria-label="Filter by category: @selectedCategoryLabel"
+                            title="Filter by category">
+                        <svg class="tracker-period-nav__icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="4" y1="21" x2="4" y2="14"></line>
+                            <line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line>
+                            <line x1="20" y1="12" x2="20" y2="3"></line>
+                            <line x1="1" y1="14" x2="7" y2="14"></line>
+                            <line x1="9" y1="8" x2="15" y2="8"></line>
+                            <line x1="17" y1="16" x2="23" y2="16"></line>
+                        </svg>
+                    </button>
+                    <ul class="dropdown-menu tracker-period-nav__menu"
+                        id="trackerCategoryMenu"
+                        role="menu"
+                        aria-labelledby="trackerCategoryToggle">
+                        <li role="none">
+                            <button type="button"
+                                    class="dropdown-item tracker-period-nav__option tracker-history-filter__option @(string.IsNullOrWhiteSpace(Model.CategoryFilter) ? "active" : "")"
+                                    data-tracker-category-option=""
+                                    role="menuitem">
+                                <span class="tracker-period-nav__option-dot" aria-hidden="true"></span>
+                                <span class="tracker-period-nav__option-name">All categories</span>
+                            </button>
+                        </li>
+                        @foreach (var cat in ExpenseCategories.All)
+                        {
+                            <li role="none">
+                                <button type="button"
+                                        class="dropdown-item tracker-period-nav__option tracker-history-filter__option @(Model.CategoryFilter == cat ? "active" : "")"
+                                        data-tracker-category-option="@cat"
+                                        role="menuitem">
+                                    <span class="tracker-period-nav__option-dot" aria-hidden="true"></span>
+                                    <span class="tracker-period-nav__option-name">@cat</span>
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="tracker-history-search__field">
+            <label class="visually-hidden" for="trackerSearchPhrase">Search expenses</label>
+            <input type="search"
+                   name="searchPhrase"
+                   id="trackerSearchPhrase"
+                   class="tracker-history-search__input form-control"
+                   placeholder="Search…"
+                   value="@Model.SearchPhrase"
+                   autocomplete="off"
+                   maxlength="200" />
+        </div>
+
+        <div class="tracker-history-search__actions">
+            <button type="submit"
+                    class="btn btn-gold btn-sm tracker-history-search__submit"
+                    aria-label="Search expenses">
+                <svg class="tracker-history-search__btn-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
+            @if (isFilterActive)
+            {
+                <button type="button"
+                        class="btn btn-outline-gold btn-sm tracker-history-search__clear"
+                        data-tracker-search-clear
+                        aria-label="Clear filters">
+                    <svg class="tracker-history-search__btn-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            }
+        </div>
     </form>
 
     <div class="tracker-activity-panel__scroll">
@@ -51,10 +148,10 @@
         {
             @await Html.PartialAsync("_ExpenseTable", Model.Expenses)
         }
-        else if (isSearchActive)
+        else if (isFilterActive)
         {
             <div class="tracker-inline-empty tracker-inline-empty--fill">
-                <p class="mb-0">No expenses match &ldquo;@Model.SearchPhrase&rdquo;.</p>
+                <p class="mb-0">No expenses match your current filters.</p>
             </div>
         }
         else
@@ -73,5 +170,6 @@
                 }
             </div>
         }
+    </div>
     </div>
 </div>

@@ -11,6 +11,9 @@ namespace SpendiTrackWeb.Models
         public IReadOnlyDictionary<string, decimal> CategoryTotals { get; set; } =
             new Dictionary<string, decimal>();
         public string? SearchPhrase { get; set; }
+        public string? CategoryFilter { get; set; }
+        public bool HasTransactionFilters =>
+            !string.IsNullOrWhiteSpace(SearchPhrase) || !string.IsNullOrWhiteSpace(CategoryFilter);
 
         // Selected tracker month
         public int SelectedYear { get; set; }
