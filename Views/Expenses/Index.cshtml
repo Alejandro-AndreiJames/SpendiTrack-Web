@@ -892,7 +892,16 @@ else
 
                 setTimeout(tuneValidator, 0);
 
+                function clearBudgetLimitNotice(form) {
+                    form.querySelectorAll('.expense-budget-limit-notice').forEach(function (el) {
+                        el.remove();
+                    });
+                }
+
                 form.addEventListener('input', function (e) {
+                    if (e.target && (e.target.name === 'Amount' || e.target.name === 'Category')) {
+                        clearBudgetLimitNotice(form);
+                    }
                     if (e.target && e.target.classList.contains('input-validation-error')) {
                         jQuery(e.target).valid();
                     }
@@ -900,6 +909,9 @@ else
                 });
 
                 form.addEventListener('change', function (e) {
+                    if (e.target && (e.target.name === 'Amount' || e.target.name === 'Category' || e.target.name === 'Date')) {
+                        clearBudgetLimitNotice(form);
+                    }
                     if (e.target && e.target.classList.contains('spendi-select__native')) {
                         jQuery(e.target).valid();
                     }

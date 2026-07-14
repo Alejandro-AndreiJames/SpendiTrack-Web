@@ -108,5 +108,37 @@ namespace SpendiTrackWeb.Services
                 new() { Label = "Left to spend", Amount = income.RemainingBudget, Kind = "total" },
             };
         }
+
+        public CategoryBudgetLimitResult CheckCategoryExpenseLimit(
+            decimal allocated,
+            decimal spentInCategory,
+            decimal expenseAmount,
+            decimal amountToExclude,
+            string category,
+            string periodLabel)
+        {
+            if (allocated <= 0)
+                return CategoryBudgetLimitResult.Allowed();
+
+            var adjustedSpent = spentInCategory - amountToExclude;
+            if (adjustedSpent < 0)
+                adjustedSpent = 0;
+
+            var newTotal = adjustedSpent + expenseAmount;
+            if (newTotal <= allocated)
+                return CategoryBudgetLimitResult.Allowed();
+
+            var remaining = allocated - adjustedSpent;
+            if (remaining <= 0)
+            {
+                return CategoryBudgetLimitResult.Denied(
+                    $"{category} is at its {allocated:C} limit for {periodLabel}. " +
+                    "Edit category budgets to allow more spending in this category.");
+            }
+
+            return CategoryBudgetLimitResult.Denied(
+                $"{category} only has {remaining:C} left of its {allocated:C} budget for {periodLabel}. " +
+                "Lower the amount or choose another category.");
+        }
     }
 }
