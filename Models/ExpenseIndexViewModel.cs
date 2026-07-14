@@ -44,7 +44,9 @@ namespace SpendiTrackWeb.Models
         public List<CategoryAllocationInput> CategoryAllocationForm { get; set; } = new();
         public List<CategoryBudgetSummary> CategoryBudgets { get; set; } = new();
         public List<CategoryBudgetSummary> ActiveCategoryBudgets { get; set; } = new();
+        public List<CategoryBudgetSummary> CategoryBudgetWarnings { get; set; } = new();
         public bool HasActiveCategoryAllocations => ActiveCategoryBudgets.Count > 0;
+        public bool HasCategoryBudgetWarnings => CategoryBudgetWarnings.Count > 0;
 
         // Budget breakdown
         public List<BudgetBreakdownLine> BudgetBreakdown { get; set; } = new();

@@ -6,6 +6,7 @@
     var amountValue = Model.Amount > 0
         ? Model.Amount.ToString(CultureInfo.InvariantCulture)
         : string.Empty;
+    var hasBudgetLimitError = ViewContext.ModelState["CategoryBudgetLimit"]?.Errors.Count > 0;
 }
 
 <div class="modal fade" id="addExpenseModal" tabindex="-1" aria-labelledby="addExpenseModalLabel" aria-hidden="true">
@@ -18,6 +19,7 @@
             <form asp-action="Create" method="post" id="addExpenseForm" novalidate>
                 @Html.AntiForgeryToken()
                 <div class="modal-body">
+                    <partial name="_ExpenseBudgetLimitNotice" />
                     <div class="add-expense-field">
                         <label asp-for="Description" class="form-label"></label>
                         <input asp-for="Description" class="form-control" id="AddExpense_Description" placeholder="What did you spend on?" autocomplete="off" />
@@ -30,7 +32,7 @@
                         <input name="Amount"
                                id="AddExpense_Amount"
                                value="@amountValue"
-                               class="form-control"
+                               class="form-control@(hasBudgetLimitError ? " input-validation-error" : "")"
                                type="number"
                                step="0.01"
                                placeholder="0.00"

@@ -1,4 +1,5 @@
 @model SpendiTrackWeb.Models.ExpenseIndexViewModel
+@using SpendiTrackWeb.Models
 
 <div class="form-panel tracker-activity-panel category-utilization">
     <div class="tracker-section-header">
@@ -10,15 +11,88 @@
 
     @if (Model.HasActiveCategoryAllocations)
     {
+        @if (Model.HasCategoryBudgetWarnings)
+        {
+            var exceededCount = Model.CategoryBudgetWarnings.Count(w => w.AlertLevel == CategoryUtilizationAlert.Exceeded);
+            var approachCount = Model.CategoryBudgetWarnings.Count(w => w.AlertLevel == CategoryUtilizationAlert.Approach);
+            var showCompactSummary = Model.CategoryBudgetWarnings.Count > 2;
+
+            <div class="category-util-alerts@(showCompactSummary ? " category-util-alerts--compact" : "")" role="status" aria-live="polite">
+                <div class="category-util-alerts__summary">
+                    @if (exceededCount > 0)
+                    {
+                        <span class="category-util-alerts__pill category-util-alerts__pill--exceeded">
+                            @exceededCount at limit
+                        </span>
+                    }
+                    @if (approachCount > 0)
+                    {
+                        <span class="category-util-alerts__pill category-util-alerts__pill--approach">
+                            @approachCount approaching
+                        </span>
+                    }
+                </div>
+
+                @if (!showCompactSummary)
+                {
+                    @foreach (var warning in Model.CategoryBudgetWarnings)
+                    {
+                        var alertClass = warning.AlertLevel == CategoryUtilizationAlert.Exceeded
+                            ? "category-util-alert--exceeded"
+                            : "category-util-alert--approach";
+
+                        <div class="category-util-alert @alertClass">
+                            <span class="category-util-alert__label">@warning.AlertLabel</span>
+                            <span class="category-util-alert__text">
+                                <strong>@warning.Category</strong>
+                                @if (warning.IsOverLimit)
+                                {
+                                    <span> — over by @((-warning.Remaining).ToString("C"))</span>
+                                }
+                                else
+                                {
+                                    <span> — @warning.SpentPercentOfAllocated.ToString("0")% of @warning.Allocated.ToString("C") used</span>
+                                }
+                            </span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="category-util-alerts__hint mb-0">Status badges on each category below show full details.</p>
+                }
+            </div>
+        }
+
         <div class="tracker-activity-panel__scroll category-utilization__list">
             @foreach (var cat in Model.ActiveCategoryBudgets)
             {
-                var isOver = cat.Remaining < 0;
+                var isOver = cat.IsOverLimit;
+                var isApproaching = cat.AlertLevel == CategoryUtilizationAlert.Approach;
+                var isExceeded = cat.AlertLevel == CategoryUtilizationAlert.Exceeded;
                 var barWidth = cat.Allocated > 0 ? Math.Min(cat.SpentPercentOfAllocated, 100) : 0;
+                var itemClass = isExceeded
+                    ? "category-util-item--exceeded"
+                    : isApproaching
+                        ? "category-util-item--approach"
+                        : string.Empty;
+                var barClass = isExceeded
+                    ? "category-util-item__bar--exceeded"
+                    : isApproaching
+                        ? "category-util-item__bar--approach"
+                        : string.Empty;
 
-                <div class="category-util-item @(isOver ? "category-util-item--over" : "")">
+                <div class="category-util-item @itemClass">
                     <div class="category-util-item__header">
-                        <span class="category-util-item__name">@cat.Category</span>
+                        <div class="category-util-item__title">
+                            <span class="category-util-item__name">@cat.Category</span>
+                            @if (cat.AlertLevel != CategoryUtilizationAlert.None)
+                            {
+                                <span class="category-util-item__badge category-util-item__badge--@(isExceeded ? "exceeded" : "approach")">
+                                    @cat.AlertLabel
+                                </span>
+                            }
+                        </div>
                         <span class="category-util-item__figures">
                             <span class="category-util-item__spent">@cat.Spent.ToString("C")</span>
                             <span class="category-util-item__sep">/</span>
@@ -26,7 +100,7 @@
                         </span>
                     </div>
                     <div class="category-util-item__track">
-                        <div class="category-util-item__bar @(isOver ? "category-util-item__bar--over" : "")"
+                        <div class="category-util-item__bar @barClass"
                              style="width: @barWidth%"></div>
                     </div>
                     <div class="category-util-item__footer">

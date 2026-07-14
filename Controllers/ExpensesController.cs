@@ -180,6 +180,9 @@ namespace SpendiTrackWeb.Controllers
 
             if (ModelState.IsValid)
             {
+                if (!await TryValidateCategoryBudgetAsync(user.Id, expense))
+                    return await IndexWithDraftAsync(expense);
+
                 _context.Add(expense);
                 await _context.SaveChangesAsync();
                 return RedirectToTracker(await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date)));
@@ -235,6 +238,13 @@ namespace SpendiTrackWeb.Controllers
 
             if (ModelState.IsValid)
             {
+                if (!await TryValidateCategoryBudgetAsync(user.Id, expense, existing))
+                {
+                    return await IndexWithEditDraftAsync(
+                        expense,
+                        await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date)));
+                }
+
                 try
                 {
                     existing.Description = expense.Description;
@@ -425,7 +435,13 @@ namespace SpendiTrackWeb.Controllers
 
             model.ActiveCategoryBudgets = model.CategoryBudgets
                 .Where(c => c.Allocated > 0)
-                .OrderByDescending(c => c.Allocated)
+                .OrderByDescending(c => (int)c.AlertLevel)
+                .ThenByDescending(c => c.SpentPercentOfAllocated)
+                .ThenByDescending(c => c.Allocated)
+                .ToList();
+
+            model.CategoryBudgetWarnings = model.ActiveCategoryBudgets
+                .Where(c => c.AlertLevel != CategoryUtilizationAlert.None)
                 .ToList();
 
             model.TotalAllocated = _budgetCalculator.TotalAllocated(budgets);
@@ -605,6 +621,54 @@ namespace SpendiTrackWeb.Controllers
             model.OpenAddExpenseModal = true;
 
             return View("Index", model);
+        }
+
+        private async Task<bool> TryValidateCategoryBudgetAsync(
+            string userId,
+            Expense expense,
+            Expense? existingExpense = null)
+        {
+            var period = TrackerPeriod.FromDate(expense.Date);
+            var userBudget = await _monthlyBudgetService.GetBudgetAsync(userId, period, seedIfMissing: false);
+            if (userBudget == null)
+                return true;
+
+            var categoryBudgets = await _monthlyBudgetService.GetCategoryBudgetsAsync(
+                userId,
+                period,
+                seedIfMissing: false);
+
+            var allocated = categoryBudgets
+                .FirstOrDefault(b => b.Category == expense.Category)
+                ?.AllocatedAmount ?? 0;
+
+            var periodExpenses = await GetUserExpensesForPeriodAsync(period);
+            var spentInCategory = periodExpenses
+                .Where(e => e.Category == expense.Category)
+                .Sum(e => e.Amount);
+
+            var amountToExclude = 0m;
+            if (existingExpense != null
+                && existingExpense.Category == expense.Category
+                && TrackerPeriod.FromDate(existingExpense.Date).Year == period.Year
+                && TrackerPeriod.FromDate(existingExpense.Date).Month == period.Month)
+            {
+                amountToExclude = existingExpense.Amount;
+            }
+
+            var result = _budgetCalculator.CheckCategoryExpenseLimit(
+                allocated,
+                spentInCategory,
+                expense.Amount,
+                amountToExclude,
+                expense.Category,
+                period.DisplayLabel);
+
+            if (result.IsAllowed)
+                return true;
+
+            ModelState.AddModelError("CategoryBudgetLimit", result.ErrorMessage!);
+            return false;
         }
 
         private static void ApplySubmittedCategoryForm(
