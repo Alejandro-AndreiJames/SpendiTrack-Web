@@ -90,6 +90,7 @@ html[data-theme="ocean"] {
   --budget-savings-default: #2dd4bf;
   --budget-fixed-default: #fb7185;
   --budget-limit-default: #38bdf8;
+  --action-duplicate: #c4b5fd;
   --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2338bdf8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
@@ -205,6 +206,7 @@ html[data-theme="sky"] {
   --budget-savings-default: #86efac;
   --budget-fixed-default: #fda4af;
   --budget-limit-default: #38bdf8;
+  --action-duplicate: #8b5cf6;
   --select-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2338bdf8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
@@ -241,6 +243,8 @@ html {
   --gold-dark: var(--primary-muted);
   --text-primary: var(--text);
   --danger-soft: var(--danger);
+  /* Distinct from theme primary / success — used for Duplicate actions */
+  --action-duplicate: #38bdf8;
 
   --bs-body-bg: var(--bg);
   --bs-body-color: var(--text);

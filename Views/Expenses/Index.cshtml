@@ -732,12 +732,20 @@ else
                 hideEditNoChangesNotice();
             }
 
+            function applyExpenseDataToButton(btn, data) {
+                if (!btn || !data) return;
+                btn.dataset.expenseId = data.id || '';
+                btn.dataset.expenseDescription = data.description || '';
+                btn.dataset.expenseAmount = data.amount || '';
+                btn.dataset.expenseDate = data.date || '';
+                btn.dataset.expenseCategory = data.category || '';
+            }
+
             function populateViewModal(data) {
                 const descEl = document.getElementById('viewExpenseDescription');
                 const amountEl = document.getElementById('viewExpenseAmount');
                 const dateEl = document.getElementById('viewExpenseDate');
                 const categoryEl = document.getElementById('viewExpenseCategory');
-                const btnEdit = document.getElementById('btnViewToEdit');
 
                 if (descEl) descEl.textContent = data.description;
                 if (amountEl) amountEl.textContent = formatMoney(parseFloat(data.amount) || 0);
@@ -751,13 +759,48 @@ else
                 }
                 if (categoryEl) categoryEl.textContent = data.category;
 
-                if (btnEdit) {
-                    btnEdit.dataset.expenseId = data.id;
-                    btnEdit.dataset.expenseDescription = data.description;
-                    btnEdit.dataset.expenseAmount = data.amount;
-                    btnEdit.dataset.expenseDate = data.date;
-                    btnEdit.dataset.expenseCategory = data.category;
-                }
+                applyExpenseDataToButton(document.getElementById('btnViewToEdit'), data);
+                applyExpenseDataToButton(document.getElementById('btnViewToDuplicate'), data);
+            }
+
+            function todayDateInputValue() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+            }
+
+            function setAddExpenseModalTitle(title) {
+                const titleEl = document.getElementById('addExpenseModalLabel');
+                if (titleEl) titleEl.textContent = title || 'Add expense';
+            }
+
+            function populateAddModalFromExpense(data) {
+                const form = document.getElementById('addExpenseForm');
+                const modalEl = document.getElementById('addExpenseModal');
+                if (!form || !modalEl || !data) return;
+
+                form.querySelector('[name="Description"]').value = data.description || '';
+                form.querySelector('[name="Amount"]').value = data.amount || '';
+                form.querySelector('[name="Date"]').value = todayDateInputValue();
+                setSpendiSelectValue(modalEl, data.category);
+                syncSpendiSelectValidation(form);
+                setAddExpenseModalTitle('Duplicate expense');
+            }
+
+            function openDuplicateExpense(data) {
+                const addModal = document.getElementById('addExpenseModal');
+                const addForm = document.getElementById('addExpenseForm');
+                if (!addModal || !addForm || !data) return;
+
+                resetExpenseForm(addModal, addForm, { clearAmount: true, resetSelect: true });
+                addForm.querySelectorAll('.expense-budget-limit-notice').forEach(function (el) {
+                    el.remove();
+                });
+                populateAddModalFromExpense(data);
+                addModal.dataset.preserveExpenseDraft = 'true';
+                bootstrap.Modal.getOrCreateInstance(addModal).show();
             }
 
             function populateDeleteModal(data) {
@@ -964,6 +1007,11 @@ else
                         return;
                     }
 
+                    if (action === 'duplicate') {
+                        openDuplicateExpense(data);
+                        return;
+                    }
+
                     if (action === 'delete') {
                         populateDeleteModal(data);
                         bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteExpenseModal')).show();
@@ -971,14 +1019,7 @@ else
                 });
 
                 document.getElementById('btnViewToEdit')?.addEventListener('click', function () {
-                    const btn = this;
-                    const data = {
-                        id: btn.dataset.expenseId,
-                        description: btn.dataset.expenseDescription,
-                        amount: btn.dataset.expenseAmount,
-                        date: btn.dataset.expenseDate,
-                        category: btn.dataset.expenseCategory
-                    };
+                    const data = readExpenseData(this);
                     bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal'))?.hide();
                     const editModal = document.getElementById('editExpenseModal');
                     const editForm = document.getElementById('editExpenseForm');
@@ -987,6 +1028,14 @@ else
                     editModal.dataset.preserveExpenseDraft = 'true';
                     setTimeout(function () {
                         bootstrap.Modal.getOrCreateInstance(editModal).show();
+                    }, 300);
+                });
+
+                document.getElementById('btnViewToDuplicate')?.addEventListener('click', function () {
+                    const data = readExpenseData(this);
+                    bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal'))?.hide();
+                    setTimeout(function () {
+                        openDuplicateExpense(data);
                     }, 300);
                 });
             }
@@ -1246,6 +1295,7 @@ else
                 setupExpenseModalForm(addModal, addForm, {
                     onReset: function () {
                         resetExpenseForm(addModal, addForm, { clearAmount: true, resetSelect: true });
+                        setAddExpenseModalTitle('Add expense');
                     }
                 });
             }
