@@ -646,7 +646,9 @@ namespace SpendiTrackWeb.Controllers
 
             foreach (var expense in expenses.OrderByDescending(e => e.Date).ThenByDescending(e => e.Id))
             {
-                sb.Append(EscapeCsv(expense.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+                // Force Date as Excel text so it never shows as ###### when the column is narrow. (Force Date to be visible)
+                sb.Append(FormatExcelTextCell(
+                    expense.Date.Date.ToString("M/d/yyyy", CultureInfo.InvariantCulture)));
                 sb.Append(',');
                 sb.Append(EscapeCsv(expense.Description));
                 sb.Append(',');
@@ -656,6 +658,15 @@ namespace SpendiTrackWeb.Controllers
             }
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Writes a CSV field Excel will keep as visible text (avoids date ###### overflow).
+        /// </summary>
+        private static string FormatExcelTextCell(string value)
+        {
+            value ??= string.Empty;
+            return "\"=\"\"" + value.Replace("\"", "\"\"") + "\"\"\"";
         }
 
         private static string EscapeCsv(string? value)
