@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Globalization;
+using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -135,6 +137,20 @@ namespace SpendiTrackWeb.Controllers
             var period = await ResolveTrackerPeriodAsync(year, month);
             var model = await LoadIndexViewModelAsync(period);
             return PartialView("_CategoryUtilization", model);
+        }
+
+        // GET: Export selected month's expenses as CSV
+        [HttpGet]
+        public async Task<IActionResult> ExportCsv(int? year, int? month)
+        {
+            var period = await ResolveTrackerPeriodAsync(year, month);
+            var expenses = await GetUserExpensesForPeriodAsync(period);
+
+            var csv = BuildExpensesCsv(expenses);
+            var fileName = $"SpendiTrack-{period.Year}-{period.Month:D2}.csv";
+            var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv)).ToArray();
+
+            return File(bytes, "text/csv; charset=utf-8", fileName);
         }
 
         // GET: Expenses/Details/5
@@ -621,6 +637,34 @@ namespace SpendiTrackWeb.Controllers
             model.OpenAddExpenseModal = true;
 
             return View("Index", model);
+        }
+
+        private static string BuildExpensesCsv(IReadOnlyList<Expense> expenses)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Date,Description,Category,Amount");
+
+            foreach (var expense in expenses.OrderByDescending(e => e.Date).ThenByDescending(e => e.Id))
+            {
+                sb.Append(EscapeCsv(expense.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+                sb.Append(',');
+                sb.Append(EscapeCsv(expense.Description));
+                sb.Append(',');
+                sb.Append(EscapeCsv(expense.Category));
+                sb.Append(',');
+                sb.AppendLine(EscapeCsv(expense.Amount.ToString("0.00", CultureInfo.InvariantCulture)));
+            }
+
+            return sb.ToString();
+        }
+
+        private static string EscapeCsv(string? value)
+        {
+            value ??= string.Empty;
+            if (value.Contains('"') || value.Contains(',') || value.Contains('\r') || value.Contains('\n'))
+                return "\"" + value.Replace("\"", "\"\"") + "\"";
+
+            return value;
         }
 
         private async Task<bool> TryValidateCategoryBudgetAsync(
