@@ -1,0 +1,40 @@
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <div class="modal fade logout-modal" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content logout-modal__content">
+                <div class="logout-modal__confirm">
+                    <div class="modal-header border-0 pb-0">
+                        <h2 class="modal-title logout-modal__title h5" id="logoutConfirmLabel">Log out?</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body logout-modal__body">
+                        <p class="mb-0">You’ll need to sign in again to access your tracker.</p>
+                    </div>
+                    <div class="modal-footer border-0 logout-modal__footer flex-column flex-sm-row gap-2">
+                        <button type="button" class="btn btn-outline-gold w-100 w-sm-auto" data-bs-dismiss="modal">Stay signed in</button>
+                        <form id="logoutConfirmForm"
+                              asp-area="Identity"
+                              asp-page="/Account/Logout"
+                              asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })"
+                              method="post"
+                              class="w-100 w-sm-auto">
+                            <button type="submit" id="logoutConfirmSubmit" class="btn btn-gold w-100">Yes, log out</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="logout-modal__progress d-none" aria-live="polite">
+                    <div class="logout-modal__progress-inner">
+                        <span class="logout-modal__spinner" aria-hidden="true"></span>
+                        <h2 class="logout-modal__progress-title">Signing you out</h2>
+                        <p class="logout-modal__progress-text">Ending your session<span class="auth-confirm__dots"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

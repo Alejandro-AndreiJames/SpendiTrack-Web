@@ -2,16 +2,53 @@
 @inject SignInManager<IdentityUser> SignInManager
 @inject UserManager<IdentityUser> UserManager
 
+@{
+    string? displayName = null;
+    if (SignInManager.IsSignedIn(User))
+    {
+        var user = await UserManager.GetUserAsync(User);
+        displayName = user?.UserName ?? User.Identity?.Name;
+    }
+}
+
 <ul class="navbar-nav align-items-center gap-1">
 @if (SignInManager.IsSignedIn(User))
 {
-    <li class="nav-item">
-        <span class="nav-link" style="color: var(--gold-light);">@User.Identity?.Name</span>
-    </li>
-    <li class="nav-item">
-        <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-            <button type="submit" class="btn btn-outline-gold btn-sm">Logout</button>
-        </form>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle account-menu__toggle"
+           href="#"
+           id="accountMenuToggle"
+           role="button"
+           data-bs-toggle="dropdown"
+           aria-expanded="false">
+            Hello, @displayName
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end account-menu" aria-labelledby="accountMenuToggle">
+            <li>
+                <a class="dropdown-item account-menu__item"
+                   asp-area="Identity"
+                   asp-page="/Account/Manage/Index"
+                   title="Manage">
+                    Profile
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item account-menu__item"
+                   asp-area="Identity"
+                   asp-page="/Account/Manage/ChangePassword">
+                    Change password
+                </a>
+            </li>
+            <li><hr class="dropdown-divider account-menu__divider" /></li>
+            <li>
+                <button type="button"
+                        class="dropdown-item account-menu__item account-menu__item--danger"
+                        data-bs-toggle="modal"
+                        data-bs-target="#logoutConfirmModal">
+                    Logout
+                </button>
+            </li>
+        </ul>
     </li>
 }
 else

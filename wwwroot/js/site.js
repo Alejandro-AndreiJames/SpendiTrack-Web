@@ -1,4 +1,34 @@
-﻿// Budget calculator on the home page
+﻿// Logout confirm → progress animation → submit
+(function () {
+    const form = document.getElementById("logoutConfirmForm");
+    const modal = document.getElementById("logoutConfirmModal");
+    if (!form || !modal) return;
+
+    form.addEventListener("submit", function (e) {
+        if (form.dataset.logoutReady === "1") return;
+
+        e.preventDefault();
+
+        const confirmPane = modal.querySelector(".logout-modal__confirm");
+        const progressPane = modal.querySelector(".logout-modal__progress");
+        const closeBtn = modal.querySelector(".btn-close");
+        const stayBtn = modal.querySelector('[data-bs-dismiss="modal"]');
+
+        if (confirmPane) confirmPane.classList.add("d-none");
+        if (progressPane) progressPane.classList.remove("d-none");
+        if (closeBtn) closeBtn.disabled = true;
+        if (stayBtn) stayBtn.disabled = true;
+
+        modal.classList.add("logout-modal--busy");
+        form.dataset.logoutReady = "1";
+
+        window.setTimeout(function () {
+            form.submit();
+        }, 1100);
+    });
+})();
+
+// Budget calculator on the home page
 (function () {
     const form = document.getElementById("budget-calculator-form");
     if (!form) return;

@@ -64,6 +64,9 @@ project.fragment.lock.json
 artifacts/
 _efbuild/
 
+# Local Identity email dumps (when SMTP is disabled)
+App_Data/emails/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
