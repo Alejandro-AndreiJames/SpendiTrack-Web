@@ -7,25 +7,47 @@
         <p class="about-hero__eyebrow">About</p>
         <h1>SpendiTrack</h1>
         <p class="about-hero__lede">
-            A personal expense tracker and monthly budget workspace — built to replace messy spreadsheets
-            with a clear picture of income, limits, and where the money actually goes.
+            A personal expense tracker and monthly budget workspace, built to replace messy spreadsheets with a clear picture of income, limits, and where the money actually goes.
         </p>
         <p class="about-hero__meta text-muted small mb-0">Version 1.0.0</p>
     </header>
 
     <section class="form-panel about-panel about-section">
         <h2 class="about-section-title">Why it exists</h2>
-        <p class="about-body mb-0">
+        <p class="about-body about-section__intro">
             SpendiTrack helps you set a realistic monthly spending limit after savings and fixed costs,
             assign money to categories, log expenses as you go, and see utilization before a category
             quietly runs over. Everything stays tied to your account so your history stays private and month-aware.
         </p>
+        <h3 class="about-subsection-title">Why it beats the usual options</h3>
+        <ol class="about-why-list">
+            <li>
+                <strong>Spreadsheets get messy fast</strong>
+                <span class="about-list-copy">Formulas break, tabs multiply, and month-to-month history becomes hard to trust. SpendiTrack keeps one clear monthly workspace instead.</span>
+            </li>
+            <li>
+                <strong>Notes and receipts rarely show the big picture</strong>
+                <span class="about-list-copy">Listing purchases is not the same as knowing what you can still spend. Category budgets and utilization show the limit before you cross it.</span>
+            </li>
+            <li>
+                <strong>Guessing leftover cash is risky</strong>
+                <span class="about-list-copy">Income, savings, and fixed costs are baked into your spending limit up front, so available money is calculated instead of estimated late in the month.</span>
+            </li>
+            <li>
+                <strong>Shared notebooks are not private finance tools</strong>
+                <span class="about-list-copy">Your tracker is account-protected with sign-in, email confirmation, and optional two-factor authentication.</span>
+            </li>
+            <li>
+                <strong>Desktop-only tools fail when you need them most</strong>
+                <span class="about-list-copy">Log expenses quickly from your phone with the floating +, then review the same month on desktop when you want the full picture.</span>
+            </li>
+        </ol>
     </section>
 
     <section class="form-panel about-panel about-section">
         <h2 class="about-section-title">What you can do</h2>
         <p class="about-body about-section__intro">
-            The tracker is organized around a single monthly view — plan the budget, track the spend, adjust as the month unfolds.
+            The tracker is organized around a single monthly view: plan the budget, track the spend, and adjust as the month unfolds.
         </p>
 
         <div class="row g-3 about-feature-grid">
@@ -62,7 +84,7 @@
                         </svg>
                     </span>
                     <h3 class="about-feature-card__title">Expense tracking</h3>
-                    <p class="mb-0">Add, view, edit, and delete expenses with description, amount, date, and category — plus quick add from the floating button on mobile and desktop.</p>
+                    <p class="mb-0">Add, view, edit, and delete expenses with description, amount, date, and category, plus quick add from the floating button on mobile and desktop.</p>
                 </article>
             </div>
             <div class="col-md-6 col-xl-4">
@@ -110,15 +132,63 @@
 
     <section class="form-panel about-panel about-section">
         <h2 class="about-section-title">Built with</h2>
-        <p class="about-body mb-3">
-            SpendiTrack is an ASP.NET Core MVC app using Entity Framework Core, SQL Server, and ASP.NET Identity —
+        <p class="about-body about-section__intro">
+            SpendiTrack is an ASP.NET Core MVC app using Entity Framework Core, SQL Server, and ASP.NET Identity,
             with email confirmation and secure account flows so private tracker data stays behind a real sign-in.
         </p>
         <ul class="about-stack-list">
-            <li><strong>ASP.NET Core MVC</strong> — pages, forms, and tracker workflows</li>
-            <li><strong>Entity Framework Core</strong> — budgets, allocations, and expense history</li>
-            <li><strong>ASP.NET Identity</strong> — registration, sign-in, profile, and security</li>
-            <li><strong>Account email</strong> — confirmation and password reset over SMTP</li>
+            <li>
+                <span class="about-stack-list__icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 7h16" />
+                        <path d="M4 12h16" />
+                        <path d="M4 17h10" />
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                    </svg>
+                </span>
+                <div>
+                    <strong>ASP.NET Core MVC</strong>
+                    <span class="about-list-copy">Pages, forms, and tracker workflows</span>
+                </div>
+            </li>
+            <li>
+                <span class="about-stack-list__icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="6" rx="7" ry="3" />
+                        <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
+                        <path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" />
+                    </svg>
+                </span>
+                <div>
+                    <strong>Entity Framework Core</strong>
+                    <span class="about-list-copy">Budgets, allocations, and expense history</span>
+                </div>
+            </li>
+            <li>
+                <span class="about-stack-list__icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                        <circle cx="10" cy="7" r="3.5" />
+                        <path d="M19 8v6M22 11h-6" />
+                    </svg>
+                </span>
+                <div>
+                    <strong>ASP.NET Identity</strong>
+                    <span class="about-list-copy">Registration, sign-in, profile, and security</span>
+                </div>
+            </li>
+            <li>
+                <span class="about-stack-list__icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="m4 7 8 6 8-6" />
+                    </svg>
+                </span>
+                <div>
+                    <strong>Account email</strong>
+                    <span class="about-list-copy">Confirmation and password reset over SMTP</span>
+                </div>
+            </li>
         </ul>
     </section>
 
@@ -126,7 +196,7 @@
         <p class="about-developer__label">Developer</p>
         <h2 class="about-section-title" id="about-developer-title">Andrei James S. Alejandro</h2>
         <p class="about-body mb-0">
-            Andrei James S. Alejandro designed and built SpendiTrack as a practical personal finance tool —
+            Andrei James S. Alejandro designed and built SpendiTrack as a practical personal finance tool,
             focused on monthly planning, clear budgets, and a tracker that stays usable on both desktop and mobile.
             The goal is simple: help people see their spending early enough to stay in control.
         </p>

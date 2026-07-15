@@ -49,14 +49,14 @@ namespace SpendiTrackWeb.Areas.Identity.Pages.Account
             if (!string.IsNullOrEmpty(ErrorMessage))
                 ModelState.AddModelError(string.Empty, ErrorMessage);
 
-            returnUrl ??= Url.Content("~/");
+            returnUrl ??= DefaultPostLoginUrl();
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
             ReturnUrl = returnUrl;
         }
 
         public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
         {
-            returnUrl ??= Url.Content("~/");
+            returnUrl ??= DefaultPostLoginUrl();
 
             if (!ModelState.IsValid)
                 return Page();
@@ -105,5 +105,8 @@ namespace SpendiTrackWeb.Areas.Identity.Pages.Account
             ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             return Page();
         }
+
+        private string DefaultPostLoginUrl()
+            => Url.Action("Index", "Expenses") ?? "/Expenses";
     }
 }

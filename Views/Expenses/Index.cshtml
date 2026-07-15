@@ -62,7 +62,7 @@
             @if (!Model.IsCurrentMonth)
             {
                 <p class="tracker-period-banner tracker-period-banner--desktop" role="status">
-                    <span class="tracker-period-banner__text">Historical view — @Model.SelectedMonthLabel only.</span>
+                    <span class="tracker-period-banner__text">Historical view: @Model.SelectedMonthLabel only.</span>
                     <a asp-action="Index" class="tracker-period-banner__link">Return to current month</a>
                 </p>
             }
@@ -115,8 +115,9 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Savings goal (%)</label>
-                <input name="SavingsPercent" value="@(Model.SavingsPercent > 0 ? Model.SavingsPercent : 10)"
-                       class="form-control" type="number" min="0" max="100" />
+                <input name="SavingsPercent"
+                       value="@(Model.SavingsPercent > 0 ? Model.SavingsPercent.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)"
+                       class="form-control" type="number" min="0" max="100" step="1" placeholder="e.g. 10" />
             </div>
             <div class="col-md-4">
                 <label class="form-label">Fixed monthly costs</label>

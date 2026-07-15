@@ -47,11 +47,11 @@
                                 <strong>@warning.Category</strong>
                                 @if (warning.IsOverLimit)
                                 {
-                                    <span> — over by @((-warning.Remaining).ToString("C"))</span>
+                                    <span> (over by @((-warning.Remaining).ToString("C")))</span>
                                 }
                                 else
                                 {
-                                    <span> — @warning.SpentPercentOfAllocated.ToString("0")% of @warning.Allocated.ToString("C") used</span>
+                                    <span> (@warning.SpentPercentOfAllocated.ToString("0")% of @warning.Allocated.ToString("C") used)</span>
                                 }
                             </span>
                         </div>

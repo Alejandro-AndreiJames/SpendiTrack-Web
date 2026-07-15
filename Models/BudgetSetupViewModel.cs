@@ -9,7 +9,7 @@ namespace SpendiTrackWeb.Models
         public decimal MonthlyIncome { get; set; }
 
         [Range(0, 100)]
-        public decimal SavingsPercent { get; set; } = 10;
+        public decimal SavingsPercent { get; set; }
 
         [Range(0, double.MaxValue)]
         public decimal FixedMonthlyCosts { get; set; }

@@ -7,7 +7,10 @@
 <!-- Hero section -->
 <section class="hero-section">
     <h1>SpendiTrack</h1>
-    <p class="tagline">Set a monthly budget, assign category limits, and track spending in one place — on desktop or mobile.</p>
+    <p class="tagline">
+        <span class="tagline__line">Set a monthly budget and assign category limits.</span>
+        <span class="tagline__line">Track spending on desktop or mobile.</span>
+    </p>
     <div class="action-links">
         @if (SignInManager.IsSignedIn(User))
         {
@@ -23,25 +26,84 @@
 <!-- Sample budget calculator -->
 <div class="row g-4 home-feature-row">
     <div class="col-lg-6">
-        <div class="calculator-panel h-100">
-            <h3>Budget calculator</h3>
-            <p class="help-text mb-3">Try a quick estimate of daily and weekly spending after savings and fixed bills — then set the real budget in Tracker.</p>
-            <form id="budget-calculator-form">
-                <div class="mb-3">
-                    <label class="form-label" for="monthly-income">Monthly income</label>
-                    <input type="number" class="form-control" id="monthly-income" min="0" step="0.01" placeholder="e.g. 3500" required />
+        <div class="calculator-panel h-100" id="homeCalculatorPanel" data-calc-mode="regular">
+            <div class="calculator-panel__header">
+                <h3 class="calculator-panel__title mb-0" id="calculatorPanelTitle">Calculator</h3>
+                <div class="calculator-mode-switch" role="group" aria-label="Calculator mode">
+                    <button type="button"
+                            class="calculator-mode-switch__btn"
+                            data-calc-mode="budget"
+                            aria-pressed="false">
+                        Budget
+                    </button>
+                    <button type="button"
+                            class="calculator-mode-switch__btn is-active"
+                            data-calc-mode="regular"
+                            aria-pressed="true">
+                        Calculator
+                    </button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label" for="savings-percent">Savings goal (%)</label>
-                    <input type="number" class="form-control" id="savings-percent" min="0" max="100" step="1" value="10" />
+            </div>
+
+            <div class="calculator-panel__modes">
+                <div class="calculator-panel__mode" data-calc-pane="budget" aria-hidden="true">
+                    <p class="help-text mb-3">Try a quick estimate of daily and weekly spending after savings and fixed bills, then set the real budget in Tracker.</p>
+                    <form id="budget-calculator-form">
+                        <div class="mb-3">
+                            <label class="form-label" for="monthly-income">Monthly income</label>
+                            <input type="number" class="form-control" id="monthly-income" min="0" step="0.01" placeholder="e.g. 3500" required tabindex="-1" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="savings-percent">Savings goal (%)</label>
+                            <input type="number" class="form-control" id="savings-percent" min="0" max="100" step="1" placeholder="e.g. 10" tabindex="-1" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="fixed-costs">Fixed monthly costs (rent, bills)</label>
+                            <input type="number" class="form-control" id="fixed-costs" min="0" step="0.01" placeholder="e.g. 1200" tabindex="-1" />
+                        </div>
+                        <button type="submit" class="btn btn-gold w-100" tabindex="-1">Calculate budget</button>
+                    </form>
+                    <div id="budget-calculator-results" class="calculator-result" style="display: none;"></div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label" for="fixed-costs">Fixed monthly costs (rent, bills)</label>
-                    <input type="number" class="form-control" id="fixed-costs" min="0" step="0.01" placeholder="e.g. 1200" />
+
+                <div class="calculator-panel__mode is-active" data-calc-pane="regular" aria-hidden="false">
+                    <p class="help-text mb-3">
+                        A quick number pad for everyday math while you plan your budget.
+                        <span class="regular-calc__hint-desktop"> You can also type with your keyboard.</span>
+                    </p>
+                    <div class="regular-calc" id="regularCalculator">
+                        <div class="regular-calc__display" aria-live="polite">
+                            <span class="regular-calc__expression" id="regularCalcExpression"></span>
+                            <span class="regular-calc__value" id="regularCalcDisplay">0</span>
+                        </div>
+                        <div class="regular-calc__keys" role="group" aria-label="Calculator keys">
+                            <button type="button" class="regular-calc__key regular-calc__key--muted" data-calc-action="clear">C</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--muted" data-calc-action="sign">+/−</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--muted" data-calc-action="percent">%</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--op" data-calc-op="/">÷</button>
+
+                            <button type="button" class="regular-calc__key" data-calc-digit="7">7</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="8">8</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="9">9</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--op" data-calc-op="*">×</button>
+
+                            <button type="button" class="regular-calc__key" data-calc-digit="4">4</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="5">5</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="6">6</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--op" data-calc-op="-">−</button>
+
+                            <button type="button" class="regular-calc__key" data-calc-digit="1">1</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="2">2</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="3">3</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--op" data-calc-op="+">+</button>
+
+                            <button type="button" class="regular-calc__key regular-calc__key--wide" data-calc-digit="0">0</button>
+                            <button type="button" class="regular-calc__key" data-calc-action="dot">.</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--equals" data-calc-action="equals">=</button>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-gold w-100">Calculate budget</button>
-            </form>
-            <div id="budget-calculator-results" class="calculator-result" style="display: none;"></div>
+            </div>
         </div>
     </div>
     <div class="col-lg-6">
@@ -95,7 +157,7 @@
                     </span>
                     <div class="home-feature-item__copy">
                         <strong>4. Log expenses</strong>
-                        <span>Add spending anytime — use + Add Expense or the floating + on mobile.</span>
+                        <span>Add spending anytime with + Add Expense or the floating + on mobile.</span>
                     </div>
                 </div>
                 <div class="home-feature-item">

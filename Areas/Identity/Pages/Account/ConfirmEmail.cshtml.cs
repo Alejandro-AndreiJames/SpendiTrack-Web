@@ -44,7 +44,20 @@ namespace SpendiTrackWeb.Areas.Identity.Pages.Account
                 await _signInManager.SignInAsync(user, isPersistent: false);
                 Succeeded = true;
                 DisplayName = user.UserName;
-                RedirectUrl = Url.IsLocalUrl(returnUrl) ? returnUrl! : Url.Content("~/")!;
+                var trackerUrl = Url.Action("Index", "Expenses") ?? "/Expenses";
+                var homeUrl = Url.Content("~/") ?? "/";
+                if (Url.IsLocalUrl(returnUrl)
+                    && !string.Equals(returnUrl, "/", StringComparison.Ordinal)
+                    && !string.Equals(returnUrl, "~/", StringComparison.Ordinal)
+                    && !string.Equals(returnUrl, homeUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    RedirectUrl = returnUrl!;
+                }
+                else
+                {
+                    RedirectUrl = trackerUrl;
+                }
+
                 return Page();
             }
 

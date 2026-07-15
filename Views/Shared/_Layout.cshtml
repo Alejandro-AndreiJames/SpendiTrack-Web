@@ -36,8 +36,8 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body data-user-theme-key="@userThemeKey">
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark navbar-spenditrack mb-4">
+    <header class="site-header">
+        <nav class="navbar navbar-expand-lg navbar-dark navbar-spenditrack">
             <div class="container">
                 <a class="navbar-brand" asp-controller="Home" asp-action="Index">SpendiTrack</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
@@ -71,7 +71,7 @@
 
     <footer class="footer-spenditrack">
         <div class="container text-center">
-            &copy; @DateTime.Now.Year SpendiTrack — Track spending. Stay in control.
+            &copy; @DateTime.Now.Year SpendiTrack. Track spending. Stay in control.
         </div>
     </footer>
 
