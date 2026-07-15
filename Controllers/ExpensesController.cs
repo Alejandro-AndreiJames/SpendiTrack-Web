@@ -70,6 +70,8 @@ namespace SpendiTrackWeb.Controllers
             }
 
             await _monthlyBudgetService.SaveUserBudgetAsync(user.Id, period, input);
+            TempData["TrackerFlash"] = "Budget saved. You can use tracker features now.";
+            TempData["TrackerFlashType"] = "success";
             return RedirectToTracker(period);
         }
 
@@ -194,6 +196,15 @@ namespace SpendiTrackWeb.Controllers
             expense.UserId = user.Id;
             ModelState.Remove(nameof(Expense.UserId));
 
+            var targetPeriod = await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date));
+            var budget = await _monthlyBudgetService.GetBudgetAsync(user.Id, targetPeriod, seedIfMissing: false);
+            if (budget == null)
+            {
+                TempData["TrackerFlash"] = "Set up your monthly budget before adding expenses.";
+                TempData["TrackerFlashType"] = "warning";
+                return RedirectToTracker(targetPeriod);
+            }
+
             if (ModelState.IsValid)
             {
                 if (!await TryValidateCategoryBudgetAsync(user.Id, expense))
@@ -201,7 +212,9 @@ namespace SpendiTrackWeb.Controllers
 
                 _context.Add(expense);
                 await _context.SaveChangesAsync();
-                return RedirectToTracker(await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date)));
+                TempData["TrackerFlash"] = "Expense added.";
+                TempData["TrackerFlashType"] = "success";
+                return RedirectToTracker(targetPeriod);
             }
 
             return await IndexWithDraftAsync(expense);
@@ -278,6 +291,8 @@ namespace SpendiTrackWeb.Controllers
                     throw;
                 }
 
+                TempData["TrackerFlash"] = "Expense updated.";
+                TempData["TrackerFlashType"] = "success";
                 return RedirectToTracker(await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date)));
             }
 
@@ -327,6 +342,7 @@ namespace SpendiTrackWeb.Controllers
                 return Json(new
                 {
                     success = true,
+                    message = "Expense deleted.",
                     stats = new
                     {
                         model.HasBudgetSetup,
@@ -339,6 +355,8 @@ namespace SpendiTrackWeb.Controllers
                 });
             }
 
+            TempData["TrackerFlash"] = "Expense deleted.";
+            TempData["TrackerFlashType"] = "success";
             return RedirectToTracker(period);
         }
 

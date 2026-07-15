@@ -1,0 +1,22 @@
+@page
+@model RegisterConfirmationModel
+@{
+    ViewData["Title"] = "Register confirmation";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (Model.DisplayConfirmAccountLink && !string.IsNullOrEmpty(Model.EmailConfirmationUrl))
+{
+    <p>
+        Real SMTP isn’t configured yet, so the confirmation mail was saved under <code>App_Data/emails</code>.
+        Confirm now by
+        <a id="confirm-link" href="@Model.EmailConfirmationUrl">clicking here</a>.
+    </p>
+}
+else
+{
+    <p>
+        Please check <strong>@Model.Email</strong> for a confirmation link before you sign in.
+    </p>
+}

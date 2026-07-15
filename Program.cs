@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using SpendiTrackWeb.Data;
+using SpendiTrackWeb.Services.Email;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,11 +25,22 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection(EmailSettings.SectionName));
+
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = false;
+        options.SignIn.RequireConfirmedAccount = true;
+        options.User.RequireUniqueEmail = true;
+        options.User.AllowedUserNameCharacters =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._";
+        options.Password.RequiredLength = 6;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+// Replace Identity UI's NoOp / default adapters with real SMTP (or App_Data file dump).
+builder.Services.AddTransient<IEmailSender, AppEmailSender>();
+builder.Services.AddTransient<IEmailSender<IdentityUser>, IdentityEmailSender>();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<SpendiTrackWeb.Services.BudgetCalculator>();
 builder.Services.AddScoped<SpendiTrackWeb.Services.MonthlyBudgetService>();
@@ -39,6 +52,19 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
+
+    // Accounts created before email confirmation was required used email as username.
+    // Confirm those so existing users are not locked out.
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    var legacyUsers = await userManager.Users
+        .Where(u => !u.EmailConfirmed && u.UserName != null && u.Email != null && u.UserName == u.Email)
+        .ToListAsync();
+
+    foreach (var legacy in legacyUsers)
+    {
+        legacy.EmailConfirmed = true;
+        await userManager.UpdateAsync(legacy);
+    }
 }
 
 if (app.Environment.IsDevelopment())

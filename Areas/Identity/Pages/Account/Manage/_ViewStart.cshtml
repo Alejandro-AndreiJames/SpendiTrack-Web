@@ -1,0 +1,12 @@
+@{
+    if (Layout != null && !string.Equals(Layout, "_Layout", StringComparison.Ordinal))
+    {
+        ViewData["ParentLayout"] = Layout;
+    }
+    else
+    {
+        ViewData["ParentLayout"] = "/Views/Shared/_Layout.cshtml";
+    }
+
+    Layout = "./_Layout.cshtml";
+}

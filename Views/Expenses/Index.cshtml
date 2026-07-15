@@ -4,12 +4,14 @@
 @{
     ViewData["Title"] = "Expense Tracker";
     var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
-    var openAddExpenseModal = Model.OpenAddExpenseModal;
+    var openAddExpenseModal = Model.OpenAddExpenseModal && Model.HasBudgetSetup;
     var expenseForModal = Model.DraftExpense ?? new Expense { Date = DateTime.Today };
     var openEditExpenseModal = Model.OpenEditExpenseModal;
     var editExpenseForModal = Model.EditExpense ?? new Expense { Date = DateTime.Today };
     var openViewExpenseModal = Model.OpenViewExpenseModal;
     var openDeleteExpenseModal = Model.OpenDeleteExpenseModal;
+    var trackerFlash = TempData["TrackerFlash"] as string;
+    var trackerFlashType = TempData["TrackerFlashType"] as string ?? "success";
 }
 
 <div class="page-header tracker-header@(Model.IsCurrentMonth ? "" : " tracker-header--historical")">
@@ -39,15 +41,28 @@
                 @await Html.PartialAsync("_MonthSelector", Model)
                 @if (Model.IsCurrentMonth)
                 {
-                    <button type="button" class="btn btn-gold tracker-header__add" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                        + Add Expense
-                    </button>
+                    @if (Model.HasBudgetSetup)
+                    {
+                        <button type="button" class="btn btn-gold tracker-header__add" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                            + Add Expense
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="btn btn-gold tracker-header__add"
+                                disabled
+                                aria-disabled="true"
+                                title="Set up your monthly budget first">
+                            + Add Expense
+                        </button>
+                    }
                 }
             </div>
             @if (!Model.IsCurrentMonth)
             {
                 <p class="tracker-period-banner tracker-period-banner--desktop" role="status">
-                    <span class="tracker-period-banner__text">Historical view — @Model.SelectedMonthLabel only.</span>
+                    <span class="tracker-period-banner__text">Historical view: @Model.SelectedMonthLabel only.</span>
                     <a asp-action="Index" class="tracker-period-banner__link">Return to current month</a>
                 </p>
             }
@@ -58,11 +73,16 @@
 <div class="tracker-page"
      data-tracker-year="@Model.SelectedYear"
      data-tracker-month="@Model.SelectedMonth"
+     data-has-budget-setup="@Model.HasBudgetSetup.ToString().ToLowerInvariant()"
      data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()"
      data-open-add-expense-modal="@openAddExpenseModal.ToString().ToLowerInvariant()"
      data-open-edit-expense-modal="@openEditExpenseModal.ToString().ToLowerInvariant()"
      data-open-view-expense-modal="@openViewExpenseModal.ToString().ToLowerInvariant()"
-     data-open-delete-expense-modal="@openDeleteExpenseModal.ToString().ToLowerInvariant()">
+     data-open-delete-expense-modal="@openDeleteExpenseModal.ToString().ToLowerInvariant()"
+     data-tracker-flash="@(trackerFlash ?? "")"
+     data-tracker-flash-type="@trackerFlashType">
+
+<div class="tracker-toast-host" aria-live="polite" aria-atomic="true"></div>
 
 @if (!ViewData.ModelState.IsValid && !Model.OpenAddExpenseModal && !Model.OpenEditExpenseModal)
 {
@@ -73,10 +93,18 @@
 
 @if (!Model.HasBudgetSetup)
 {
+    <div class="tracker-setup-note" role="status">
+        <div class="tracker-setup-note__icon" aria-hidden="true">!</div>
+        <div class="tracker-setup-note__copy">
+            <strong>Finish setup first</strong>
+            <p class="mb-0">Set your monthly income and limit below before you can add expenses or use the rest of the tracker.</p>
+        </div>
+    </div>
+
     <div class="form-panel">
         <h2 class="h5 mb-2" style="color: var(--gold);">Set up your monthly budget</h2>
         <p class="help-text mb-3">Enter your income first so we can calculate your spending limit.</p>
-        <form asp-action="SaveBudget" method="post" class="row g-3">
+        <form asp-action="SaveBudget" method="post" class="row g-3" data-tracker-busy-form>
             @Html.AntiForgeryToken()
             <input type="hidden" name="Year" value="@Model.SelectedYear" />
             <input type="hidden" name="Month" value="@Model.SelectedMonth" />
@@ -87,8 +115,9 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Savings goal (%)</label>
-                <input name="SavingsPercent" value="@(Model.SavingsPercent > 0 ? Model.SavingsPercent : 10)"
-                       class="form-control" type="number" min="0" max="100" />
+                <input name="SavingsPercent"
+                       value="@(Model.SavingsPercent > 0 ? Model.SavingsPercent.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)"
+                       class="form-control" type="number" min="0" max="100" step="1" placeholder="e.g. 10" />
             </div>
             <div class="col-md-4">
                 <label class="form-label">Fixed monthly costs</label>
@@ -96,7 +125,10 @@
                        class="form-control" type="number" step="0.01" min="0" />
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-gold">Save income &amp; limit</button>
+                <button type="submit" class="btn btn-gold">
+                    <span class="btn-label">Save income &amp; limit</span>
+                    <span class="btn-busy" aria-hidden="true"></span>
+                </button>
             </div>
         </form>
     </div>
@@ -384,15 +416,17 @@
                     </div>
                 }
             </div>
-            <div class="category-budget-form-total">
-                <span>Total allocated</span>
-                <span id="categoryBudgetRunningTotal">@Model.TotalAllocated.ToString("C")</span>
-                <span class="category-budget-form-total__sep">/</span>
-                <span id="categoryBudgetLimit">@Model.SpendingLimit.ToString("C")</span>
-            </div>
-            <div class="budget-profile__actions">
-                <button type="submit" class="btn btn-gold" id="btnSaveCategoryBudgets">Save changes</button>
-                <button type="button" class="btn btn-outline-gold" id="btnCancelCategoryBudgets">Cancel</button>
+            <div class="category-budget-form-footer">
+                <div class="category-budget-form-total">
+                    <span>Total allocated</span>
+                    <span id="categoryBudgetRunningTotal">@Model.TotalAllocated.ToString("C")</span>
+                    <span class="category-budget-form-total__sep">/</span>
+                    <span id="categoryBudgetLimit">@Model.SpendingLimit.ToString("C")</span>
+                </div>
+                <div class="budget-profile__actions">
+                    <button type="submit" class="btn btn-gold" id="btnSaveCategoryBudgets">Save changes</button>
+                    <button type="button" class="btn btn-outline-gold" id="btnCancelCategoryBudgets">Cancel</button>
+                </div>
             </div>
         </form>
     </div>
@@ -419,6 +453,32 @@ else
 }
 </div>
 
+@if (Model.IsCurrentMonth)
+{
+    @if (Model.HasBudgetSetup)
+    {
+        <button type="button"
+                class="tracker-fab"
+                data-bs-toggle="modal"
+                data-bs-target="#addExpenseModal"
+                aria-label="Add expense"
+                title="Add expense">
+            <span class="tracker-fab__plus" aria-hidden="true">+</span>
+        </button>
+    }
+    else
+    {
+        <button type="button"
+                class="tracker-fab"
+                disabled
+                aria-disabled="true"
+                aria-label="Add expense"
+                title="Set up your monthly budget first">
+            <span class="tracker-fab__plus" aria-hidden="true">+</span>
+        </button>
+    }
+}
+
 <partial name="_AddExpenseModal" model="expenseForModal" />
 <partial name="_EditExpenseModal" model="editExpenseForModal" />
 <partial name="_ViewExpenseModal" model="Model.ViewExpense" />
@@ -430,11 +490,66 @@ else
     }
     <script>
         (function () {
-            const openCategoryBudgetEdit = document.querySelector('.tracker-page')?.dataset.openCategoryBudgetEdit === 'true';
-            const openAddExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openAddExpenseModal === 'true';
-            const openEditExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openEditExpenseModal === 'true';
-            const openViewExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openViewExpenseModal === 'true';
-            const openDeleteExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openDeleteExpenseModal === 'true';
+            const trackerPage = document.querySelector('.tracker-page');
+            const openCategoryBudgetEdit = trackerPage?.dataset.openCategoryBudgetEdit === 'true';
+            const openAddExpenseModalFlag = trackerPage?.dataset.openAddExpenseModal === 'true';
+            const openEditExpenseModalFlag = trackerPage?.dataset.openEditExpenseModal === 'true';
+            const openViewExpenseModalFlag = trackerPage?.dataset.openViewExpenseModal === 'true';
+            const openDeleteExpenseModalFlag = trackerPage?.dataset.openDeleteExpenseModal === 'true';
+
+            function showTrackerToast(message, type) {
+                if (!message) return;
+                const host = document.querySelector('.tracker-toast-host');
+                if (!host) return;
+
+                const toast = document.createElement('div');
+                toast.className = 'tracker-toast tracker-toast--' + (type || 'success');
+                toast.setAttribute('role', 'status');
+                toast.innerHTML =
+                    '<span class="tracker-toast__mark" aria-hidden="true"></span>' +
+                    '<span class="tracker-toast__text"></span>';
+                toast.querySelector('.tracker-toast__text').textContent = message;
+                host.appendChild(toast);
+
+                window.requestAnimationFrame(function () {
+                    toast.classList.add('is-visible');
+                });
+
+                window.setTimeout(function () {
+                    toast.classList.remove('is-visible');
+                    toast.classList.add('is-hiding');
+                    window.setTimeout(function () { toast.remove(); }, 280);
+                }, 2800);
+            }
+
+            function setButtonBusy(btn, busy) {
+                if (!btn) return;
+                btn.classList.toggle('is-busy', !!busy);
+                btn.disabled = !!busy;
+                btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+            }
+
+            function bindBusyForm(form) {
+                if (!form || form.dataset.busyBound === '1') return;
+                form.dataset.busyBound = '1';
+                form.addEventListener('submit', function () {
+                    if (window.jQuery) {
+                        const $form = jQuery(form);
+                        const validator = $form.data('validator');
+                        if (validator && !$form.valid()) return;
+                    }
+                    const submitBtn = form.querySelector('[type="submit"]');
+                    setButtonBusy(submitBtn, true);
+                });
+            }
+
+            document.querySelectorAll('[data-tracker-busy-form]').forEach(bindBusyForm);
+
+            const flashMessage = trackerPage?.dataset.trackerFlash || '';
+            const flashType = trackerPage?.dataset.trackerFlashType || 'success';
+            if (flashMessage) {
+                showTrackerToast(flashMessage, flashType);
+            }
 
             function getTrackerPeriod() {
                 const page = document.querySelector('.tracker-page');
@@ -790,6 +905,10 @@ else
             }
 
             function openDuplicateExpense(data) {
+                if (trackerPage?.dataset.hasBudgetSetup !== 'true') {
+                    showTrackerToast('Set up your monthly budget before adding expenses.', 'warning');
+                    return;
+                }
                 const addModal = document.getElementById('addExpenseModal');
                 const addForm = document.getElementById('addExpenseForm');
                 if (!addModal || !addForm || !data) return;
@@ -1092,7 +1211,7 @@ else
                     e.preventDefault();
                     const scrollY = window.scrollY;
                     const submitBtn = form.querySelector('[type="submit"]');
-                    if (submitBtn) submitBtn.disabled = true;
+                    setButtonBusy(submitBtn, true);
 
                     try {
                         const response = await fetch(form.action, {
@@ -1111,10 +1230,11 @@ else
 
                         updateTrackerStats(result.stats);
                         await refreshCategoryUtilizationPanel();
+                        showTrackerToast(result.message || 'Expense deleted.', 'success');
 
                         window.scrollTo(0, scrollY);
                     } finally {
-                        if (submitBtn) submitBtn.disabled = false;
+                        setButtonBusy(submitBtn, false);
                     }
                 });
             }
@@ -1298,6 +1418,7 @@ else
                         setAddExpenseModalTitle('Add expense');
                     }
                 });
+                bindBusyForm(addForm);
             }
 
             function setupEditExpenseForm() {
@@ -1310,11 +1431,13 @@ else
                         refreshEditExpenseSnapshot(editForm);
                     }
                 });
+                bindBusyForm(editForm);
 
                 editForm.addEventListener('submit', function (e) {
                     if (!hasEditExpenseChanges(editForm)) {
                         e.preventDefault();
                         showEditNoChangesNotice();
+                        setButtonBusy(editForm.querySelector('[type="submit"]'), false);
                         return;
                     }
                     hideEditNoChangesNotice();
@@ -1374,6 +1497,25 @@ else
                 });
             }
 
+            function openCategoryBudgetsEditor() {
+                const panel = document.getElementById('categoryBudgetsPanel');
+                const btnEdit = document.getElementById('btnEditCategoryBudgets');
+                const view = document.getElementById('categoryBudgetsView');
+                const edit = document.getElementById('categoryBudgetsEdit');
+                if (!panel || !btnEdit || !view || !edit) return;
+
+                panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                window.setTimeout(function () {
+                    view.hidden = true;
+                    edit.hidden = false;
+                    btnEdit.hidden = true;
+                    validateCategoryBudgetForm();
+                    const firstInput = edit.querySelector('.category-budget-chip__input');
+                    firstInput?.focus({ preventScroll: true });
+                }, 380);
+            }
+
             setupEditPanel('btnEditProfile', 'btnCancelEdit', 'budgetProfileView', 'budgetProfileEdit');
             setupEditPanel('btnEditCategoryBudgets', 'btnCancelCategoryBudgets', 'categoryBudgetsView', 'categoryBudgetsEdit', resetCategoryFormFromView);
             setupCategoryBudgetValidation();
@@ -1386,18 +1528,15 @@ else
             setupDeleteExpenseForm();
             setupTrackerHistorySearch();
 
-            document.getElementById('btnSetCategoryBudgets')?.addEventListener('click', function () {
-                const panel = document.getElementById('categoryBudgetsPanel');
-                panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                setTimeout(function () {
-                    document.getElementById('btnEditCategoryBudgets')?.click();
-                }, 450);
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('[data-action="set-category-budgets"], #btnSetCategoryBudgets');
+                if (!btn) return;
+                e.preventDefault();
+                openCategoryBudgetsEditor();
             });
 
             if (openCategoryBudgetEdit) {
-                document.getElementById('categoryBudgetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                document.getElementById('btnEditCategoryBudgets')?.click();
-                validateCategoryBudgetForm();
+                openCategoryBudgetsEditor();
             }
             // Open add expense modal if flag is set
             if (openAddExpenseModalFlag) {

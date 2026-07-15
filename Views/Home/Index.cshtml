@@ -7,7 +7,10 @@
 <!-- Hero section -->
 <section class="hero-section">
     <h1>SpendiTrack</h1>
-    <p class="tagline">Your personal expenditure tracker and budget calculator. Record spending, see summaries, and plan what you can afford.</p>
+    <p class="tagline">
+        <span class="tagline__line">Set a monthly budget and assign category limits.</span>
+        <span class="tagline__line">Track spending on desktop or mobile.</span>
+    </p>
     <div class="action-links">
         @if (SignInManager.IsSignedIn(User))
         {
@@ -23,54 +26,166 @@
 <!-- Sample budget calculator -->
 <div class="row g-4 home-feature-row">
     <div class="col-lg-6">
-        <div class="calculator-panel h-100">
-            <h3>Budget calculator</h3>
-            <p class="help-text mb-3">Estimate how much you can spend daily and weekly after savings and fixed bills.</p>
-            <form id="budget-calculator-form">
-                <div class="mb-3">
-                    <label class="form-label" for="monthly-income">Monthly income</label>
-                    <input type="number" class="form-control" id="monthly-income" min="0" step="0.01" placeholder="e.g. 3500" required />
+        <div class="calculator-panel h-100" id="homeCalculatorPanel" data-calc-mode="regular">
+            <div class="calculator-panel__header">
+                <h3 class="calculator-panel__title mb-0" id="calculatorPanelTitle">Calculator</h3>
+                <div class="calculator-mode-switch" role="group" aria-label="Calculator mode">
+                    <button type="button"
+                            class="calculator-mode-switch__btn"
+                            data-calc-mode="budget"
+                            aria-pressed="false">
+                        Budget
+                    </button>
+                    <button type="button"
+                            class="calculator-mode-switch__btn is-active"
+                            data-calc-mode="regular"
+                            aria-pressed="true">
+                        Calculator
+                    </button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label" for="savings-percent">Savings goal (%)</label>
-                    <input type="number" class="form-control" id="savings-percent" min="0" max="100" step="1" value="10" />
+            </div>
+
+            <div class="calculator-panel__modes">
+                <div class="calculator-panel__mode" data-calc-pane="budget" aria-hidden="true">
+                    <p class="help-text mb-3">Try a quick estimate of daily and weekly spending after savings and fixed bills, then set the real budget in Tracker.</p>
+                    <form id="budget-calculator-form">
+                        <div class="mb-3">
+                            <label class="form-label" for="monthly-income">Monthly income</label>
+                            <input type="number" class="form-control" id="monthly-income" min="0" step="0.01" placeholder="e.g. 3500" required tabindex="-1" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="savings-percent">Savings goal (%)</label>
+                            <input type="number" class="form-control" id="savings-percent" min="0" max="100" step="1" placeholder="e.g. 10" tabindex="-1" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="fixed-costs">Fixed monthly costs (rent, bills)</label>
+                            <input type="number" class="form-control" id="fixed-costs" min="0" step="0.01" placeholder="e.g. 1200" tabindex="-1" />
+                        </div>
+                        <button type="submit" class="btn btn-gold w-100" tabindex="-1">Calculate budget</button>
+                    </form>
+                    <div id="budget-calculator-results" class="calculator-result" style="display: none;"></div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label" for="fixed-costs">Fixed monthly costs (rent, bills)</label>
-                    <input type="number" class="form-control" id="fixed-costs" min="0" step="0.01" placeholder="e.g. 1200" />
+
+                <div class="calculator-panel__mode is-active" data-calc-pane="regular" aria-hidden="false">
+                    <p class="help-text mb-3">
+                        A quick number pad for everyday math while you plan your budget.
+                        <span class="regular-calc__hint-desktop"> You can also type with your keyboard.</span>
+                    </p>
+                    <div class="regular-calc" id="regularCalculator">
+                        <div class="regular-calc__display" aria-live="polite">
+                            <span class="regular-calc__expression" id="regularCalcExpression"></span>
+                            <span class="regular-calc__value" id="regularCalcDisplay">0</span>
+                        </div>
+                        <div class="regular-calc__keys" role="group" aria-label="Calculator keys">
+                            <button type="button" class="regular-calc__key regular-calc__key--muted" data-calc-action="clear">C</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--muted" data-calc-action="sign">+/−</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--muted" data-calc-action="percent">%</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--op" data-calc-op="/">÷</button>
+
+                            <button type="button" class="regular-calc__key" data-calc-digit="7">7</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="8">8</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="9">9</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--op" data-calc-op="*">×</button>
+
+                            <button type="button" class="regular-calc__key" data-calc-digit="4">4</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="5">5</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="6">6</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--op" data-calc-op="-">−</button>
+
+                            <button type="button" class="regular-calc__key" data-calc-digit="1">1</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="2">2</button>
+                            <button type="button" class="regular-calc__key" data-calc-digit="3">3</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--op" data-calc-op="+">+</button>
+
+                            <button type="button" class="regular-calc__key regular-calc__key--wide" data-calc-digit="0">0</button>
+                            <button type="button" class="regular-calc__key" data-calc-action="dot">.</button>
+                            <button type="button" class="regular-calc__key regular-calc__key--equals" data-calc-action="equals">=</button>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-gold w-100">Calculate budget</button>
-            </form>
-            <div id="budget-calculator-results" class="calculator-result" style="display: none;"></div>
+            </div>
         </div>
     </div>
     <div class="col-lg-6">
         <div class="form-panel home-how-it-works h-100">
-            <h2 class="h5 mb-3 home-how-it-works__title">How it works</h2>
+            <h2 class="h5 mb-2 home-how-it-works__title">How to use</h2>
+            <p class="help-text home-how-it-works__intro mb-3">A simple loop: plan the month, log expenses, and watch category limits.</p>
             <div class="home-feature-grid">
                 <div class="home-feature-item">
-                    <strong>Tracker</strong>
-                    <span>View expenses with monthly totals, averages, and category breakdown.</span>
+                    <span class="home-feature-item__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                            <circle cx="10" cy="7" r="3.5" />
+                            <path d="M19 8v6M22 11h-6" />
+                        </svg>
+                    </span>
+                    <div class="home-feature-item__copy">
+                        <strong>1. Sign in</strong>
+                        <span>Create an account, confirm your email, then open Tracker.</span>
+                    </div>
                 </div>
                 <div class="home-feature-item">
-                    <strong>Add / Edit</strong>
-                    <span>Sign in to create or update entries — ASP.NET Identity keeps your data secure.</span>
+                    <span class="home-feature-item__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" />
+                            <path d="M16 2v4M8 2v4M3 10h18" />
+                        </svg>
+                    </span>
+                    <div class="home-feature-item__copy">
+                        <strong>2. Set the month</strong>
+                        <span>Enter income, savings %, and fixed costs to unlock your spending limit.</span>
+                    </div>
                 </div>
                 <div class="home-feature-item">
-                    <strong>Search</strong>
-                    <span>Filter transaction history by description keyword on the Tracker page.</span>
+                    <span class="home-feature-item__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3v18" />
+                            <path d="M5 8h7a3 3 0 0 1 0 6H8a3 3 0 0 0 0 6h11" />
+                        </svg>
+                    </span>
+                    <div class="home-feature-item__copy">
+                        <strong>3. Split by category</strong>
+                        <span>Allocate the limit across category budgets so each area has a cap.</span>
+                    </div>
                 </div>
                 <div class="home-feature-item">
-                    <strong>Monthly budget</strong>
-                    <span>Set income, savings, fixed costs, and per-category spending limits.</span>
+                    <span class="home-feature-item__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 8v8M8 12h8" />
+                        </svg>
+                    </span>
+                    <div class="home-feature-item__copy">
+                        <strong>4. Log expenses</strong>
+                        <span>Add spending anytime with + Add Expense or the floating + on mobile.</span>
+                    </div>
                 </div>
                 <div class="home-feature-item">
-                    <strong>Themes</strong>
-                    <span>Pick a color palette from the navbar — your choice is saved per account.</span>
+                    <span class="home-feature-item__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19V5" />
+                            <path d="M4 19h16" />
+                            <path d="M8 15v-4" />
+                            <path d="M12 15V8" />
+                            <path d="M16 15v-6" />
+                        </svg>
+                    </span>
+                    <div class="home-feature-item__copy">
+                        <strong>5. Watch utilization</strong>
+                        <span>Check category progress, remaining balance, and history as you spend.</span>
+                    </div>
                 </div>
                 <div class="home-feature-item">
-                    <strong>Calculator</strong>
-                    <span>Use the tool on this page to plan disposable income before you spend.</span>
+                    <span class="home-feature-item__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="m20 20-3.5-3.5" />
+                        </svg>
+                    </span>
+                    <div class="home-feature-item__copy">
+                        <strong>6. Search &amp; export</strong>
+                        <span>Filter transactions by keyword, browse past months, or export CSV.</span>
+                    </div>
                 </div>
             </div>
         </div>

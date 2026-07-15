@@ -1,0 +1,17 @@
+@page
+@model LoginSuccessModel
+@{
+    ViewData["Title"] = "Welcome back";
+    var landing = new SpendiTrackWeb.Models.AuthSuccessLandingViewModel
+    {
+        Title = "Welcome back",
+        Lead = string.IsNullOrWhiteSpace(Model.DisplayName)
+            ? "You're signed in."
+            : $"Good to see you, {Model.DisplayName}.",
+        StatusText = "Taking you in",
+        RedirectUrl = Model.RedirectUrl,
+        ContinueLabel = "Continue now"
+    };
+}
+
+<partial name="_AuthSuccessLanding" model="landing" />
