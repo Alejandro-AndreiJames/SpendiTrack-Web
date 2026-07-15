@@ -1,0 +1,52 @@
+@model SpendiTrackWeb.Models.AuthSuccessLandingViewModel
+
+@{
+    var variant = ViewData["AuthLandingVariant"] as string;
+    var rootClass = string.IsNullOrWhiteSpace(variant)
+        ? "auth-confirm"
+        : $"auth-confirm auth-confirm--{variant}";
+}
+
+<div class="@rootClass" data-redirect-url="@Model.RedirectUrl">
+    <div class="auth-confirm__card">
+        <div class="auth-confirm__mark" aria-hidden="true">
+            @if (string.Equals(variant, "logout", StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="auth-confirm__logout-icon">
+                    <span class="auth-confirm__logout-door"></span>
+                    <span class="auth-confirm__logout-arrow"></span>
+                </div>
+            }
+            else
+            {
+                <svg class="auth-confirm__check" viewBox="0 0 52 52">
+                    <circle class="auth-confirm__check-circle" cx="26" cy="26" r="24" fill="none" />
+                    <path class="auth-confirm__check-path" fill="none" d="M14.5 27.2l7.2 7.2 15.8-15.8" />
+                </svg>
+            }
+        </div>
+
+        <p class="auth-confirm__eyebrow">SpendiTrack</p>
+        <h1 class="auth-confirm__title">@Model.Title</h1>
+        <p class="auth-confirm__lead">@Model.Lead</p>
+
+        <div class="auth-confirm__login-row" aria-live="polite">
+            <span class="auth-confirm__spinner" aria-hidden="true"></span>
+            <span class="auth-confirm__login-text">@Model.StatusText<span class="auth-confirm__dots"></span></span>
+        </div>
+
+        <p class="auth-confirm__hint">You’ll be redirected in a moment.</p>
+        <a class="auth-confirm__manual" href="@Model.RedirectUrl">@Model.ContinueLabel</a>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var root = document.querySelector('.auth-confirm');
+        if (!root) return;
+        var url = root.getAttribute('data-redirect-url') || '/';
+        window.setTimeout(function () {
+            window.location.href = url;
+        }, 2600);
+    })();
+</script>

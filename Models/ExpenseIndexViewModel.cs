@@ -11,6 +11,9 @@ namespace SpendiTrackWeb.Models
         public IReadOnlyDictionary<string, decimal> CategoryTotals { get; set; } =
             new Dictionary<string, decimal>();
         public string? SearchPhrase { get; set; }
+        public string? CategoryFilter { get; set; }
+        public bool HasTransactionFilters =>
+            !string.IsNullOrWhiteSpace(SearchPhrase) || !string.IsNullOrWhiteSpace(CategoryFilter);
 
         // Selected tracker month
         public int SelectedYear { get; set; }
@@ -41,7 +44,9 @@ namespace SpendiTrackWeb.Models
         public List<CategoryAllocationInput> CategoryAllocationForm { get; set; } = new();
         public List<CategoryBudgetSummary> CategoryBudgets { get; set; } = new();
         public List<CategoryBudgetSummary> ActiveCategoryBudgets { get; set; } = new();
+        public List<CategoryBudgetSummary> CategoryBudgetWarnings { get; set; } = new();
         public bool HasActiveCategoryAllocations => ActiveCategoryBudgets.Count > 0;
+        public bool HasCategoryBudgetWarnings => CategoryBudgetWarnings.Count > 0;
 
         // Budget breakdown
         public List<BudgetBreakdownLine> BudgetBreakdown { get; set; } = new();

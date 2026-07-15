@@ -1,0 +1,34 @@
+@inject SignInManager<IdentityUser> SignInManager
+@{
+    var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+}
+
+<nav class="manage-nav" aria-label="Profile settings">
+    <a class="manage-nav__link @ManageNavPages.IndexNavClass(ViewContext)" asp-page="./Index">
+        <span class="manage-nav__dot" aria-hidden="true"></span>
+        Profile
+    </a>
+    <a class="manage-nav__link @ManageNavPages.EmailNavClass(ViewContext)" asp-page="./Email">
+        <span class="manage-nav__dot" aria-hidden="true"></span>
+        Email
+    </a>
+    <a class="manage-nav__link @ManageNavPages.ChangePasswordNavClass(ViewContext)" asp-page="./ChangePassword">
+        <span class="manage-nav__dot" aria-hidden="true"></span>
+        Password
+    </a>
+    @if (hasExternalLogins)
+    {
+        <a class="manage-nav__link @ManageNavPages.ExternalLoginsNavClass(ViewContext)" asp-page="./ExternalLogins">
+            <span class="manage-nav__dot" aria-hidden="true"></span>
+            External logins
+        </a>
+    }
+    <a class="manage-nav__link @ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext)" asp-page="./TwoFactorAuthentication">
+        <span class="manage-nav__dot" aria-hidden="true"></span>
+        Security
+    </a>
+    <a class="manage-nav__link @ManageNavPages.PersonalDataNavClass(ViewContext)" asp-page="./PersonalData">
+        <span class="manage-nav__dot" aria-hidden="true"></span>
+        Data
+    </a>
+</nav>

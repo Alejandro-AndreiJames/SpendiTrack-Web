@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Globalization;
+using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -32,11 +34,11 @@ namespace SpendiTrackWeb.Controllers
         }
 
         // GET: Expenses
-        public async Task<IActionResult> Index(int? year, int? month, string? search)
+        public async Task<IActionResult> Index(int? year, int? month, string? search, string? category)
         {
             var period = await ResolveTrackerPeriodAsync(year, month);
             var model = await LoadIndexViewModelAsync(period);
-            ApplySearchFilter(model, search);
+            ApplyTransactionFilters(model, search, category);
             return View(model);
         }
 
@@ -68,6 +70,8 @@ namespace SpendiTrackWeb.Controllers
             }
 
             await _monthlyBudgetService.SaveUserBudgetAsync(user.Id, period, input);
+            TempData["TrackerFlash"] = "Budget saved. You can use tracker features now.";
+            TempData["TrackerFlashType"] = "success";
             return RedirectToTracker(period);
         }
 
@@ -120,11 +124,11 @@ namespace SpendiTrackWeb.Controllers
 
         // GET: Transaction history search (partial update, no full page reload)
         [HttpGet]
-        public async Task<IActionResult> SearchTransactions(int? year, int? month, string? search)
+        public async Task<IActionResult> SearchTransactions(int? year, int? month, string? search, string? category)
         {
             var period = await ResolveTrackerPeriodAsync(year, month);
             var model = await LoadIndexViewModelAsync(period);
-            ApplySearchFilter(model, search);
+            ApplyTransactionFilters(model, search, category);
             return PartialView("_TransactionHistoryPanel", model);
         }
 
@@ -135,6 +139,20 @@ namespace SpendiTrackWeb.Controllers
             var period = await ResolveTrackerPeriodAsync(year, month);
             var model = await LoadIndexViewModelAsync(period);
             return PartialView("_CategoryUtilization", model);
+        }
+
+        // GET: Export selected month's expenses as CSV
+        [HttpGet]
+        public async Task<IActionResult> ExportCsv(int? year, int? month)
+        {
+            var period = await ResolveTrackerPeriodAsync(year, month);
+            var expenses = await GetUserExpensesForPeriodAsync(period);
+
+            var csv = BuildExpensesCsv(expenses);
+            var fileName = $"SpendiTrack-{period.Year}-{period.Month:D2}.csv";
+            var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv)).ToArray();
+
+            return File(bytes, "text/csv; charset=utf-8", fileName);
         }
 
         // GET: Expenses/Details/5
@@ -178,11 +196,25 @@ namespace SpendiTrackWeb.Controllers
             expense.UserId = user.Id;
             ModelState.Remove(nameof(Expense.UserId));
 
+            var targetPeriod = await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date));
+            var budget = await _monthlyBudgetService.GetBudgetAsync(user.Id, targetPeriod, seedIfMissing: false);
+            if (budget == null)
+            {
+                TempData["TrackerFlash"] = "Set up your monthly budget before adding expenses.";
+                TempData["TrackerFlashType"] = "warning";
+                return RedirectToTracker(targetPeriod);
+            }
+
             if (ModelState.IsValid)
             {
+                if (!await TryValidateCategoryBudgetAsync(user.Id, expense))
+                    return await IndexWithDraftAsync(expense);
+
                 _context.Add(expense);
                 await _context.SaveChangesAsync();
-                return RedirectToTracker(await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date)));
+                TempData["TrackerFlash"] = "Expense added.";
+                TempData["TrackerFlashType"] = "success";
+                return RedirectToTracker(targetPeriod);
             }
 
             return await IndexWithDraftAsync(expense);
@@ -235,6 +267,13 @@ namespace SpendiTrackWeb.Controllers
 
             if (ModelState.IsValid)
             {
+                if (!await TryValidateCategoryBudgetAsync(user.Id, expense, existing))
+                {
+                    return await IndexWithEditDraftAsync(
+                        expense,
+                        await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date)));
+                }
+
                 try
                 {
                     existing.Description = expense.Description;
@@ -252,6 +291,8 @@ namespace SpendiTrackWeb.Controllers
                     throw;
                 }
 
+                TempData["TrackerFlash"] = "Expense updated.";
+                TempData["TrackerFlashType"] = "success";
                 return RedirectToTracker(await ResolveTrackerPeriodAsync(TrackerPeriod.FromDate(expense.Date)));
             }
 
@@ -301,6 +342,7 @@ namespace SpendiTrackWeb.Controllers
                 return Json(new
                 {
                     success = true,
+                    message = "Expense deleted.",
                     stats = new
                     {
                         model.HasBudgetSetup,
@@ -313,6 +355,8 @@ namespace SpendiTrackWeb.Controllers
                 });
             }
 
+            TempData["TrackerFlash"] = "Expense deleted.";
+            TempData["TrackerFlashType"] = "success";
             return RedirectToTracker(period);
         }
 
@@ -425,7 +469,13 @@ namespace SpendiTrackWeb.Controllers
 
             model.ActiveCategoryBudgets = model.CategoryBudgets
                 .Where(c => c.Allocated > 0)
-                .OrderByDescending(c => c.Allocated)
+                .OrderByDescending(c => (int)c.AlertLevel)
+                .ThenByDescending(c => c.SpentPercentOfAllocated)
+                .ThenByDescending(c => c.Allocated)
+                .ToList();
+
+            model.CategoryBudgetWarnings = model.ActiveCategoryBudgets
+                .Where(c => c.AlertLevel != CategoryUtilizationAlert.None)
                 .ToList();
 
             model.TotalAllocated = _budgetCalculator.TotalAllocated(budgets);
@@ -563,17 +613,29 @@ namespace SpendiTrackWeb.Controllers
             return model;
         }
 
-        private static void ApplySearchFilter(ExpenseIndexViewModel model, string? search)
+        private static void ApplyTransactionFilters(ExpenseIndexViewModel model, string? search, string? category)
         {
-            var trimmedSearch = search?.Trim();
-            if (string.IsNullOrWhiteSpace(trimmedSearch))
-                return;
+            IEnumerable<Expense> filtered = model.Expenses;
 
-            model.Expenses = model.Expenses
-                .Where(e => e.Description.Contains(trimmedSearch, StringComparison.OrdinalIgnoreCase))
+            var trimmedSearch = search?.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedSearch))
+            {
+                filtered = filtered.Where(e =>
+                    e.Description.Contains(trimmedSearch, StringComparison.OrdinalIgnoreCase));
+                model.SearchPhrase = trimmedSearch;
+            }
+
+            var trimmedCategory = category?.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedCategory)
+                && ExpenseCategories.All.Contains(trimmedCategory, StringComparer.Ordinal))
+            {
+                filtered = filtered.Where(e => e.Category == trimmedCategory);
+                model.CategoryFilter = trimmedCategory;
+            }
+
+            model.Expenses = filtered
                 .OrderByDescending(e => e.Date)
                 .ToList();
-            model.SearchPhrase = trimmedSearch;
         }
 
         private async Task<IActionResult> IndexWithEditDraftAsync(Expense expense, TrackerPeriod period)
@@ -593,6 +655,93 @@ namespace SpendiTrackWeb.Controllers
             model.OpenAddExpenseModal = true;
 
             return View("Index", model);
+        }
+
+        private static string BuildExpensesCsv(IReadOnlyList<Expense> expenses)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Date,Description,Category,Amount");
+
+            foreach (var expense in expenses.OrderByDescending(e => e.Date).ThenByDescending(e => e.Id))
+            {
+                // Force Date as Excel text so it never shows as ###### when the column is narrow. (Force Date to be visible)
+                sb.Append(FormatExcelTextCell(
+                    expense.Date.Date.ToString("M/d/yyyy", CultureInfo.InvariantCulture)));
+                sb.Append(',');
+                sb.Append(EscapeCsv(expense.Description));
+                sb.Append(',');
+                sb.Append(EscapeCsv(expense.Category));
+                sb.Append(',');
+                sb.AppendLine(EscapeCsv(expense.Amount.ToString("0.00", CultureInfo.InvariantCulture)));
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Writes a CSV field Excel will keep as visible text (avoids date ###### overflow).
+        /// </summary>
+        private static string FormatExcelTextCell(string value)
+        {
+            value ??= string.Empty;
+            return "\"=\"\"" + value.Replace("\"", "\"\"") + "\"\"\"";
+        }
+
+        private static string EscapeCsv(string? value)
+        {
+            value ??= string.Empty;
+            if (value.Contains('"') || value.Contains(',') || value.Contains('\r') || value.Contains('\n'))
+                return "\"" + value.Replace("\"", "\"\"") + "\"";
+
+            return value;
+        }
+
+        private async Task<bool> TryValidateCategoryBudgetAsync(
+            string userId,
+            Expense expense,
+            Expense? existingExpense = null)
+        {
+            var period = TrackerPeriod.FromDate(expense.Date);
+            var userBudget = await _monthlyBudgetService.GetBudgetAsync(userId, period, seedIfMissing: false);
+            if (userBudget == null)
+                return true;
+
+            var categoryBudgets = await _monthlyBudgetService.GetCategoryBudgetsAsync(
+                userId,
+                period,
+                seedIfMissing: false);
+
+            var allocated = categoryBudgets
+                .FirstOrDefault(b => b.Category == expense.Category)
+                ?.AllocatedAmount ?? 0;
+
+            var periodExpenses = await GetUserExpensesForPeriodAsync(period);
+            var spentInCategory = periodExpenses
+                .Where(e => e.Category == expense.Category)
+                .Sum(e => e.Amount);
+
+            var amountToExclude = 0m;
+            if (existingExpense != null
+                && existingExpense.Category == expense.Category
+                && TrackerPeriod.FromDate(existingExpense.Date).Year == period.Year
+                && TrackerPeriod.FromDate(existingExpense.Date).Month == period.Month)
+            {
+                amountToExclude = existingExpense.Amount;
+            }
+
+            var result = _budgetCalculator.CheckCategoryExpenseLimit(
+                allocated,
+                spentInCategory,
+                expense.Amount,
+                amountToExclude,
+                expense.Category,
+                period.DisplayLabel);
+
+            if (result.IsAllowed)
+                return true;
+
+            ModelState.AddModelError("CategoryBudgetLimit", result.ErrorMessage!);
+            return false;
         }
 
         private static void ApplySubmittedCategoryForm(

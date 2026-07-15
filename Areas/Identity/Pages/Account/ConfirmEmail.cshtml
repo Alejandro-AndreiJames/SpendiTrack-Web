@@ -1,0 +1,33 @@
+@page
+@model ConfirmEmailModel
+@{
+    ViewData["Title"] = Model.Succeeded ? "Email confirmed" : "Confirm email";
+}
+
+@if (Model.Succeeded)
+{
+    var landing = new SpendiTrackWeb.Models.AuthSuccessLandingViewModel
+    {
+        Title = "Thank you for confirming",
+        Lead = string.IsNullOrWhiteSpace(Model.DisplayName)
+            ? "Your email is verified."
+            : $"You're all set, {Model.DisplayName}.",
+        StatusText = "Logging you in",
+        RedirectUrl = Model.RedirectUrl,
+        ContinueLabel = "Continue now"
+    };
+    <partial name="_AuthSuccessLanding" model="landing" />
+}
+else
+{
+    <h1>@ViewData["Title"]</h1>
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Model.StatusMessage
+        </div>
+        <p class="mb-0">
+            <a class="btn btn-gold" asp-area="Identity" asp-page="/Account/Login">Go to login</a>
+        </p>
+    }
+}

@@ -1,0 +1,35 @@
+@{
+    if (ViewData.TryGetValue("ParentLayout", out var parentLayout) && parentLayout is string parent)
+    {
+        Layout = parent;
+    }
+    else
+    {
+        Layout = "/Views/Shared/_Layout.cshtml";
+    }
+}
+
+<div class="manage-shell">
+    <header class="manage-shell__header">
+        <div>
+            <p class="manage-shell__eyebrow">Account</p>
+            <h1 class="manage-shell__title">Settings</h1>
+            <p class="manage-shell__subtitle">Profile, email, and security in one place.</p>
+        </div>
+    </header>
+
+    <div class="manage-shell__grid">
+        <aside class="manage-shell__nav-wrap" aria-label="Account sections">
+            <partial name="_ManageNav" />
+        </aside>
+        <section class="manage-shell__panel">
+            <div class="manage-shell__panel-inner">
+                @RenderBody()
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}

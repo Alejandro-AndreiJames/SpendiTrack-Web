@@ -1,0 +1,32 @@
+@page
+@model LogoutModel
+@{
+    ViewData["Title"] = Model.ShowFarewell ? "Signed out" : "Log out";
+}
+
+@if (Model.ShowFarewell)
+{
+    ViewData["AuthLandingVariant"] = "logout";
+    var landing = new SpendiTrackWeb.Models.AuthSuccessLandingViewModel
+    {
+        Title = "You've signed out",
+        Lead = string.IsNullOrWhiteSpace(Model.DisplayName)
+            ? "Your session has ended securely."
+            : $"See you soon, {Model.DisplayName}.",
+        StatusText = "Heading home",
+        RedirectUrl = Model.RedirectUrl,
+        ContinueLabel = "Go to home"
+    };
+    <partial name="_AuthSuccessLanding" model="landing" />
+}
+else
+{
+    <div class="auth-confirm">
+        <div class="auth-confirm__card">
+            <p class="auth-confirm__eyebrow">SpendiTrack</p>
+            <h1 class="auth-confirm__title">Log out</h1>
+            <p class="auth-confirm__lead">Use the menu Logout button to sign out of your account.</p>
+            <a class="btn btn-gold" asp-controller="Home" asp-action="Index" asp-area="">Back home</a>
+        </div>
+    </div>
+}

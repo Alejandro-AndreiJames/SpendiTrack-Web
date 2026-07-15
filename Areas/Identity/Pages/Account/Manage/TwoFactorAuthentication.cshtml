@@ -1,0 +1,69 @@
+@page
+@model TwoFactorAuthenticationModel
+@{
+    ViewData["Title"] = "Two-factor authentication";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<div class="manage-section">
+    <header class="manage-section__head">
+        <h2 class="manage-section__title">Two-factor authentication</h2>
+        <p class="manage-section__lead">Add an extra layer of security when signing in.</p>
+    </header>
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="manage-toast" role="status">@Model.StatusMessage</div>
+    }
+
+    <div class="manage-stat">
+        <div class="manage-stat__meta">
+            <span class="manage-stat__label">Status</span>
+            <span class="manage-stat__value">@(Model.Is2faEnabled ? "Enabled" : "Not enabled")</span>
+        </div>
+        <span class="manage-badge @(Model.Is2faEnabled ? "manage-badge--ok" : "manage-badge--muted")">
+            @(Model.Is2faEnabled ? "On" : "Off")
+        </span>
+    </div>
+
+    <div class="manage-actions">
+        @if (!Model.HasAuthenticator)
+        {
+            <article class="manage-action-card">
+                <h3 class="manage-action-card__title">Set up authenticator</h3>
+                <p class="manage-action-card__text">Use an authenticator app to generate sign-in codes.</p>
+                <a class="btn btn-gold" asp-page="./EnableAuthenticator">Get started</a>
+            </article>
+        }
+        else
+        {
+            <article class="manage-action-card">
+                <h3 class="manage-action-card__title">Authenticator app</h3>
+                <p class="manage-action-card__text">
+                    @(Model.Is2faEnabled
+                        ? $"Recovery codes left: {Model.RecoveryCodesLeft}."
+                        : "Your authenticator is configured but 2FA is not enabled yet.")
+                </p>
+                <div class="manage-action-card__row">
+                    <a class="btn btn-outline-gold" asp-page="./EnableAuthenticator">Configure</a>
+                    @if (Model.Is2faEnabled)
+                    {
+                        <a class="btn btn-outline-gold" asp-page="./GenerateRecoveryCodes">Recovery codes</a>
+                        <a class="btn btn-outline-danger" asp-page="./Disable2fa">Disable</a>
+                    }
+                </div>
+            </article>
+        }
+
+        @if (Model.IsMachineRemembered)
+        {
+            <article class="manage-action-card">
+                <h3 class="manage-action-card__title">This browser</h3>
+                <p class="manage-action-card__text">This device is remembered and may skip 2FA prompts.</p>
+                <form method="post">
+                    <button type="submit" class="btn btn-outline-gold">Forget this browser</button>
+                </form>
+            </article>
+        }
+    </div>
+</div>

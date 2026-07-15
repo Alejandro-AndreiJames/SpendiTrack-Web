@@ -7,6 +7,7 @@
         ? Model.Amount.ToString(CultureInfo.InvariantCulture)
         : string.Empty;
     var dateValue = Model.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    var hasBudgetLimitError = ViewContext.ModelState["CategoryBudgetLimit"]?.Errors.Count > 0;
 }
 
 <div class="modal fade" id="editExpenseModal" tabindex="-1" aria-labelledby="editExpenseModalLabel" aria-hidden="true">
@@ -25,6 +26,7 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="Id" id="EditExpense_Id" />
                 <div class="modal-body">
+                    <partial name="_ExpenseBudgetLimitNotice" />
                     <p class="expense-form-notice expense-form-notice--warning" id="editExpenseNoChangesNotice" hidden role="alert">
                         No changes were made.
                     </p>
@@ -40,7 +42,7 @@
                         <input name="Amount"
                                id="EditExpense_Amount"
                                value="@amountValue"
-                               class="form-control"
+                               class="form-control@(hasBudgetLimitError ? " input-validation-error" : "")"
                                type="number"
                                step="0.01"
                                placeholder="0.00"
@@ -90,7 +92,10 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-gold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-gold">Save changes</button>
+                    <button type="submit" class="btn btn-gold">
+                        <span class="btn-label">Save changes</span>
+                        <span class="btn-busy" aria-hidden="true"></span>
+                    </button>
                 </div>
             </form>
         </div>

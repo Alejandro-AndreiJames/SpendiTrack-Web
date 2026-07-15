@@ -31,17 +31,28 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer expense-modal__footer--split">
                 <button type="button" class="btn btn-outline-gold" data-bs-dismiss="modal">Close</button>
-                <button type="button"
-                        class="btn btn-gold"
-                        id="btnViewToEdit"
-                        data-expense-edit
-                        data-expense-id="@Model?.Id"
-                        data-expense-description="@Model?.Description"
-                        data-expense-amount="@(Model != null ? Model.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
-                        data-expense-date="@(Model?.Date.ToString("yyyy-MM-dd"))"
-                        data-expense-category="@Model?.Category">Edit expense</button>
+                <div class="expense-modal__footer-actions">
+                    <button type="button"
+                            class="btn btn-outline-gold"
+                            id="btnViewToDuplicate"
+                            title="Copy into a new expense for today"
+                            data-expense-id="@Model?.Id"
+                            data-expense-description="@Model?.Description"
+                            data-expense-amount="@(Model != null ? Model.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
+                            data-expense-date="@(Model?.Date.ToString("yyyy-MM-dd"))"
+                            data-expense-category="@Model?.Category">Duplicate</button>
+                    <button type="button"
+                            class="btn btn-gold"
+                            id="btnViewToEdit"
+                            data-expense-edit
+                            data-expense-id="@Model?.Id"
+                            data-expense-description="@Model?.Description"
+                            data-expense-amount="@(Model != null ? Model.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
+                            data-expense-date="@(Model?.Date.ToString("yyyy-MM-dd"))"
+                            data-expense-category="@Model?.Category">Edit expense</button>
+                </div>
             </div>
         </div>
     </div>

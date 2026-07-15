@@ -1,0 +1,41 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Profile";
+    ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<div class="manage-section">
+    <header class="manage-section__head">
+        <h2 class="manage-section__title">Profile</h2>
+        <p class="manage-section__lead">Your public account details on SpendiTrack.</p>
+    </header>
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="manage-toast" role="status">@Model.StatusMessage</div>
+    }
+
+    <form method="post" class="manage-form">
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+        <div class="manage-field">
+            <label class="manage-field__label" asp-for="Username">Username</label>
+            <input asp-for="Username" class="manage-field__input" disabled />
+        </div>
+
+        <div class="manage-field">
+            <label class="manage-field__label" asp-for="Input.PhoneNumber">Phone number</label>
+            <input asp-for="Input.PhoneNumber" class="manage-field__input" placeholder="Optional" />
+            <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <div class="manage-form__actions">
+            <button type="submit" class="btn btn-gold">Save changes</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

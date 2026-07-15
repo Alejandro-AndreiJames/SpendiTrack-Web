@@ -4,12 +4,14 @@
 @{
     ViewData["Title"] = "Expense Tracker";
     var openCategoryBudgetEdit = TempData["OpenCategoryBudgetEdit"] as bool? == true;
-    var openAddExpenseModal = Model.OpenAddExpenseModal;
+    var openAddExpenseModal = Model.OpenAddExpenseModal && Model.HasBudgetSetup;
     var expenseForModal = Model.DraftExpense ?? new Expense { Date = DateTime.Today };
     var openEditExpenseModal = Model.OpenEditExpenseModal;
     var editExpenseForModal = Model.EditExpense ?? new Expense { Date = DateTime.Today };
     var openViewExpenseModal = Model.OpenViewExpenseModal;
     var openDeleteExpenseModal = Model.OpenDeleteExpenseModal;
+    var trackerFlash = TempData["TrackerFlash"] as string;
+    var trackerFlashType = TempData["TrackerFlashType"] as string ?? "success";
 }
 
 <div class="page-header tracker-header@(Model.IsCurrentMonth ? "" : " tracker-header--historical")">
@@ -39,15 +41,28 @@
                 @await Html.PartialAsync("_MonthSelector", Model)
                 @if (Model.IsCurrentMonth)
                 {
-                    <button type="button" class="btn btn-gold tracker-header__add" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                        + Add Expense
-                    </button>
+                    @if (Model.HasBudgetSetup)
+                    {
+                        <button type="button" class="btn btn-gold tracker-header__add" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                            + Add Expense
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="btn btn-gold tracker-header__add"
+                                disabled
+                                aria-disabled="true"
+                                title="Set up your monthly budget first">
+                            + Add Expense
+                        </button>
+                    }
                 }
             </div>
             @if (!Model.IsCurrentMonth)
             {
                 <p class="tracker-period-banner tracker-period-banner--desktop" role="status">
-                    <span class="tracker-period-banner__text">Historical view — @Model.SelectedMonthLabel only.</span>
+                    <span class="tracker-period-banner__text">Historical view: @Model.SelectedMonthLabel only.</span>
                     <a asp-action="Index" class="tracker-period-banner__link">Return to current month</a>
                 </p>
             }
@@ -58,11 +73,16 @@
 <div class="tracker-page"
      data-tracker-year="@Model.SelectedYear"
      data-tracker-month="@Model.SelectedMonth"
+     data-has-budget-setup="@Model.HasBudgetSetup.ToString().ToLowerInvariant()"
      data-open-category-budget-edit="@openCategoryBudgetEdit.ToString().ToLowerInvariant()"
      data-open-add-expense-modal="@openAddExpenseModal.ToString().ToLowerInvariant()"
      data-open-edit-expense-modal="@openEditExpenseModal.ToString().ToLowerInvariant()"
      data-open-view-expense-modal="@openViewExpenseModal.ToString().ToLowerInvariant()"
-     data-open-delete-expense-modal="@openDeleteExpenseModal.ToString().ToLowerInvariant()">
+     data-open-delete-expense-modal="@openDeleteExpenseModal.ToString().ToLowerInvariant()"
+     data-tracker-flash="@(trackerFlash ?? "")"
+     data-tracker-flash-type="@trackerFlashType">
+
+<div class="tracker-toast-host" aria-live="polite" aria-atomic="true"></div>
 
 @if (!ViewData.ModelState.IsValid && !Model.OpenAddExpenseModal && !Model.OpenEditExpenseModal)
 {
@@ -73,10 +93,18 @@
 
 @if (!Model.HasBudgetSetup)
 {
+    <div class="tracker-setup-note" role="status">
+        <div class="tracker-setup-note__icon" aria-hidden="true">!</div>
+        <div class="tracker-setup-note__copy">
+            <strong>Finish setup first</strong>
+            <p class="mb-0">Set your monthly income and limit below before you can add expenses or use the rest of the tracker.</p>
+        </div>
+    </div>
+
     <div class="form-panel">
         <h2 class="h5 mb-2" style="color: var(--gold);">Set up your monthly budget</h2>
         <p class="help-text mb-3">Enter your income first so we can calculate your spending limit.</p>
-        <form asp-action="SaveBudget" method="post" class="row g-3">
+        <form asp-action="SaveBudget" method="post" class="row g-3" data-tracker-busy-form>
             @Html.AntiForgeryToken()
             <input type="hidden" name="Year" value="@Model.SelectedYear" />
             <input type="hidden" name="Month" value="@Model.SelectedMonth" />
@@ -87,8 +115,9 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Savings goal (%)</label>
-                <input name="SavingsPercent" value="@(Model.SavingsPercent > 0 ? Model.SavingsPercent : 10)"
-                       class="form-control" type="number" min="0" max="100" />
+                <input name="SavingsPercent"
+                       value="@(Model.SavingsPercent > 0 ? Model.SavingsPercent.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)"
+                       class="form-control" type="number" min="0" max="100" step="1" placeholder="e.g. 10" />
             </div>
             <div class="col-md-4">
                 <label class="form-label">Fixed monthly costs</label>
@@ -96,7 +125,10 @@
                        class="form-control" type="number" step="0.01" min="0" />
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-gold">Save income &amp; limit</button>
+                <button type="submit" class="btn btn-gold">
+                    <span class="btn-label">Save income &amp; limit</span>
+                    <span class="btn-busy" aria-hidden="true"></span>
+                </button>
             </div>
         </form>
     </div>
@@ -342,17 +374,17 @@
     </div>
 
     <div class="form-panel category-budgets-panel" id="categoryBudgetsPanel">
-        <div class="budget-profile__header">
-            <div>
-                <h2 class="h5 mb-1" style="color: var(--gold);">Category budgets</h2>
-                <p class="help-text mb-0">Assign amounts from your spending limit to each category.</p>
+        <div class="budget-profile__header category-budgets-panel__header">
+            <div class="category-budgets-panel__title-row">
+                <h2 class="h5 mb-0" style="color: var(--gold);">Category budgets</h2>
+                <button type="button" class="btn-edit-profile" id="btnEditCategoryBudgets" aria-label="Edit category budgets">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </button>
             </div>
-            <button type="button" class="btn-edit-profile" id="btnEditCategoryBudgets" aria-label="Edit category budgets">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-            </button>
+            <p class="help-text mb-0">Assign amounts from your spending limit to each category.</p>
         </div>
 
         <div class="category-budget-grid" id="categoryBudgetsView">
@@ -384,15 +416,17 @@
                     </div>
                 }
             </div>
-            <div class="category-budget-form-total">
-                <span>Total allocated</span>
-                <span id="categoryBudgetRunningTotal">@Model.TotalAllocated.ToString("C")</span>
-                <span class="category-budget-form-total__sep">/</span>
-                <span id="categoryBudgetLimit">@Model.SpendingLimit.ToString("C")</span>
-            </div>
-            <div class="budget-profile__actions">
-                <button type="submit" class="btn btn-gold" id="btnSaveCategoryBudgets">Save changes</button>
-                <button type="button" class="btn btn-outline-gold" id="btnCancelCategoryBudgets">Cancel</button>
+            <div class="category-budget-form-footer">
+                <div class="category-budget-form-total">
+                    <span>Total allocated</span>
+                    <span id="categoryBudgetRunningTotal">@Model.TotalAllocated.ToString("C")</span>
+                    <span class="category-budget-form-total__sep">/</span>
+                    <span id="categoryBudgetLimit">@Model.SpendingLimit.ToString("C")</span>
+                </div>
+                <div class="budget-profile__actions">
+                    <button type="submit" class="btn btn-gold" id="btnSaveCategoryBudgets">Save changes</button>
+                    <button type="button" class="btn btn-outline-gold" id="btnCancelCategoryBudgets">Cancel</button>
+                </div>
             </div>
         </form>
     </div>
@@ -419,6 +453,32 @@ else
 }
 </div>
 
+@if (Model.IsCurrentMonth)
+{
+    @if (Model.HasBudgetSetup)
+    {
+        <button type="button"
+                class="tracker-fab"
+                data-bs-toggle="modal"
+                data-bs-target="#addExpenseModal"
+                aria-label="Add expense"
+                title="Add expense">
+            <span class="tracker-fab__plus" aria-hidden="true">+</span>
+        </button>
+    }
+    else
+    {
+        <button type="button"
+                class="tracker-fab"
+                disabled
+                aria-disabled="true"
+                aria-label="Add expense"
+                title="Set up your monthly budget first">
+            <span class="tracker-fab__plus" aria-hidden="true">+</span>
+        </button>
+    }
+}
+
 <partial name="_AddExpenseModal" model="expenseForModal" />
 <partial name="_EditExpenseModal" model="editExpenseForModal" />
 <partial name="_ViewExpenseModal" model="Model.ViewExpense" />
@@ -430,11 +490,66 @@ else
     }
     <script>
         (function () {
-            const openCategoryBudgetEdit = document.querySelector('.tracker-page')?.dataset.openCategoryBudgetEdit === 'true';
-            const openAddExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openAddExpenseModal === 'true';
-            const openEditExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openEditExpenseModal === 'true';
-            const openViewExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openViewExpenseModal === 'true';
-            const openDeleteExpenseModalFlag = document.querySelector('.tracker-page')?.dataset.openDeleteExpenseModal === 'true';
+            const trackerPage = document.querySelector('.tracker-page');
+            const openCategoryBudgetEdit = trackerPage?.dataset.openCategoryBudgetEdit === 'true';
+            const openAddExpenseModalFlag = trackerPage?.dataset.openAddExpenseModal === 'true';
+            const openEditExpenseModalFlag = trackerPage?.dataset.openEditExpenseModal === 'true';
+            const openViewExpenseModalFlag = trackerPage?.dataset.openViewExpenseModal === 'true';
+            const openDeleteExpenseModalFlag = trackerPage?.dataset.openDeleteExpenseModal === 'true';
+
+            function showTrackerToast(message, type) {
+                if (!message) return;
+                const host = document.querySelector('.tracker-toast-host');
+                if (!host) return;
+
+                const toast = document.createElement('div');
+                toast.className = 'tracker-toast tracker-toast--' + (type || 'success');
+                toast.setAttribute('role', 'status');
+                toast.innerHTML =
+                    '<span class="tracker-toast__mark" aria-hidden="true"></span>' +
+                    '<span class="tracker-toast__text"></span>';
+                toast.querySelector('.tracker-toast__text').textContent = message;
+                host.appendChild(toast);
+
+                window.requestAnimationFrame(function () {
+                    toast.classList.add('is-visible');
+                });
+
+                window.setTimeout(function () {
+                    toast.classList.remove('is-visible');
+                    toast.classList.add('is-hiding');
+                    window.setTimeout(function () { toast.remove(); }, 280);
+                }, 2800);
+            }
+
+            function setButtonBusy(btn, busy) {
+                if (!btn) return;
+                btn.classList.toggle('is-busy', !!busy);
+                btn.disabled = !!busy;
+                btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+            }
+
+            function bindBusyForm(form) {
+                if (!form || form.dataset.busyBound === '1') return;
+                form.dataset.busyBound = '1';
+                form.addEventListener('submit', function () {
+                    if (window.jQuery) {
+                        const $form = jQuery(form);
+                        const validator = $form.data('validator');
+                        if (validator && !$form.valid()) return;
+                    }
+                    const submitBtn = form.querySelector('[type="submit"]');
+                    setButtonBusy(submitBtn, true);
+                });
+            }
+
+            document.querySelectorAll('[data-tracker-busy-form]').forEach(bindBusyForm);
+
+            const flashMessage = trackerPage?.dataset.trackerFlash || '';
+            const flashType = trackerPage?.dataset.trackerFlashType || 'success';
+            if (flashMessage) {
+                showTrackerToast(flashMessage, flashType);
+            }
 
             function getTrackerPeriod() {
                 const page = document.querySelector('.tracker-page');
@@ -451,12 +566,24 @@ else
                 return url;
             }
 
-            function buildTrackerIndexUrl(search) {
+            function buildTrackerIndexUrl(search, category) {
                 const indexUrl = '@Url.Action("Index", "Expenses")';
                 const url = new URL(indexUrl, window.location.origin);
                 appendTrackerPeriod(url);
                 if (search) url.searchParams.set('search', search);
+                if (category) url.searchParams.set('category', category);
                 return url.pathname + url.search;
+            }
+
+            function getCurrentTransactionFilters() {
+                const searchInput = document.getElementById('trackerSearchPhrase');
+                const categoryInput = document.getElementById('trackerCategoryFilter');
+                const params = new URLSearchParams(window.location.search);
+
+                return {
+                    search: (searchInput?.value || params.get('search') || '').trim(),
+                    category: (categoryInput?.value || params.get('category') || '').trim()
+                };
             }
 
             function formatMoney(value) {
@@ -720,12 +847,20 @@ else
                 hideEditNoChangesNotice();
             }
 
+            function applyExpenseDataToButton(btn, data) {
+                if (!btn || !data) return;
+                btn.dataset.expenseId = data.id || '';
+                btn.dataset.expenseDescription = data.description || '';
+                btn.dataset.expenseAmount = data.amount || '';
+                btn.dataset.expenseDate = data.date || '';
+                btn.dataset.expenseCategory = data.category || '';
+            }
+
             function populateViewModal(data) {
                 const descEl = document.getElementById('viewExpenseDescription');
                 const amountEl = document.getElementById('viewExpenseAmount');
                 const dateEl = document.getElementById('viewExpenseDate');
                 const categoryEl = document.getElementById('viewExpenseCategory');
-                const btnEdit = document.getElementById('btnViewToEdit');
 
                 if (descEl) descEl.textContent = data.description;
                 if (amountEl) amountEl.textContent = formatMoney(parseFloat(data.amount) || 0);
@@ -739,13 +874,52 @@ else
                 }
                 if (categoryEl) categoryEl.textContent = data.category;
 
-                if (btnEdit) {
-                    btnEdit.dataset.expenseId = data.id;
-                    btnEdit.dataset.expenseDescription = data.description;
-                    btnEdit.dataset.expenseAmount = data.amount;
-                    btnEdit.dataset.expenseDate = data.date;
-                    btnEdit.dataset.expenseCategory = data.category;
+                applyExpenseDataToButton(document.getElementById('btnViewToEdit'), data);
+                applyExpenseDataToButton(document.getElementById('btnViewToDuplicate'), data);
+            }
+
+            function todayDateInputValue() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+            }
+
+            function setAddExpenseModalTitle(title) {
+                const titleEl = document.getElementById('addExpenseModalLabel');
+                if (titleEl) titleEl.textContent = title || 'Add expense';
+            }
+
+            function populateAddModalFromExpense(data) {
+                const form = document.getElementById('addExpenseForm');
+                const modalEl = document.getElementById('addExpenseModal');
+                if (!form || !modalEl || !data) return;
+
+                form.querySelector('[name="Description"]').value = data.description || '';
+                form.querySelector('[name="Amount"]').value = data.amount || '';
+                form.querySelector('[name="Date"]').value = todayDateInputValue();
+                setSpendiSelectValue(modalEl, data.category);
+                syncSpendiSelectValidation(form);
+                setAddExpenseModalTitle('Duplicate expense');
+            }
+
+            function openDuplicateExpense(data) {
+                if (trackerPage?.dataset.hasBudgetSetup !== 'true') {
+                    showTrackerToast('Set up your monthly budget before adding expenses.', 'warning');
+                    return;
                 }
+                const addModal = document.getElementById('addExpenseModal');
+                const addForm = document.getElementById('addExpenseForm');
+                if (!addModal || !addForm || !data) return;
+
+                resetExpenseForm(addModal, addForm, { clearAmount: true, resetSelect: true });
+                addForm.querySelectorAll('.expense-budget-limit-notice').forEach(function (el) {
+                    el.remove();
+                });
+                populateAddModalFromExpense(data);
+                addModal.dataset.preserveExpenseDraft = 'true';
+                bootstrap.Modal.getOrCreateInstance(addModal).show();
             }
 
             function populateDeleteModal(data) {
@@ -880,7 +1054,16 @@ else
 
                 setTimeout(tuneValidator, 0);
 
+                function clearBudgetLimitNotice(form) {
+                    form.querySelectorAll('.expense-budget-limit-notice').forEach(function (el) {
+                        el.remove();
+                    });
+                }
+
                 form.addEventListener('input', function (e) {
+                    if (e.target && (e.target.name === 'Amount' || e.target.name === 'Category')) {
+                        clearBudgetLimitNotice(form);
+                    }
                     if (e.target && e.target.classList.contains('input-validation-error')) {
                         jQuery(e.target).valid();
                     }
@@ -888,6 +1071,9 @@ else
                 });
 
                 form.addEventListener('change', function (e) {
+                    if (e.target && (e.target.name === 'Amount' || e.target.name === 'Category' || e.target.name === 'Date')) {
+                        clearBudgetLimitNotice(form);
+                    }
                     if (e.target && e.target.classList.contains('spendi-select__native')) {
                         jQuery(e.target).valid();
                     }
@@ -940,6 +1126,11 @@ else
                         return;
                     }
 
+                    if (action === 'duplicate') {
+                        openDuplicateExpense(data);
+                        return;
+                    }
+
                     if (action === 'delete') {
                         populateDeleteModal(data);
                         bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteExpenseModal')).show();
@@ -947,14 +1138,7 @@ else
                 });
 
                 document.getElementById('btnViewToEdit')?.addEventListener('click', function () {
-                    const btn = this;
-                    const data = {
-                        id: btn.dataset.expenseId,
-                        description: btn.dataset.expenseDescription,
-                        amount: btn.dataset.expenseAmount,
-                        date: btn.dataset.expenseDate,
-                        category: btn.dataset.expenseCategory
-                    };
+                    const data = readExpenseData(this);
                     bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal'))?.hide();
                     const editModal = document.getElementById('editExpenseModal');
                     const editForm = document.getElementById('editExpenseForm');
@@ -963,6 +1147,14 @@ else
                     editModal.dataset.preserveExpenseDraft = 'true';
                     setTimeout(function () {
                         bootstrap.Modal.getOrCreateInstance(editModal).show();
+                    }, 300);
+                });
+
+                document.getElementById('btnViewToDuplicate')?.addEventListener('click', function () {
+                    const data = readExpenseData(this);
+                    bootstrap.Modal.getInstance(document.getElementById('viewExpenseModal'))?.hide();
+                    setTimeout(function () {
+                        openDuplicateExpense(data);
                     }, 300);
                 });
             }
@@ -993,9 +1185,7 @@ else
             }
 
             function getCurrentSearchPhrase() {
-                const input = document.getElementById('trackerSearchPhrase');
-                if (input?.value?.trim()) return input.value.trim();
-                return new URLSearchParams(window.location.search).get('search') || '';
+                return getCurrentTransactionFilters().search;
             }
 
             async function refreshCategoryUtilizationPanel() {
@@ -1021,7 +1211,7 @@ else
                     e.preventDefault();
                     const scrollY = window.scrollY;
                     const submitBtn = form.querySelector('[type="submit"]');
-                    if (submitBtn) submitBtn.disabled = true;
+                    setButtonBusy(submitBtn, true);
 
                     try {
                         const response = await fetch(form.action, {
@@ -1035,15 +1225,16 @@ else
                         bootstrap.Modal.getInstance(document.getElementById('deleteExpenseModal'))?.hide();
 
                         if (refreshTransactionHistoryPanel) {
-                            await refreshTransactionHistoryPanel(getCurrentSearchPhrase());
+                            await refreshTransactionHistoryPanel(getCurrentTransactionFilters());
                         }
 
                         updateTrackerStats(result.stats);
                         await refreshCategoryUtilizationPanel();
+                        showTrackerToast(result.message || 'Expense deleted.', 'success');
 
                         window.scrollTo(0, scrollY);
                     } finally {
-                        if (submitBtn) submitBtn.disabled = false;
+                        setButtonBusy(submitBtn, false);
                     }
                 });
             }
@@ -1100,9 +1291,12 @@ else
                     const form = host.querySelector('[data-tracker-search-form]');
                     if (!form) return;
                     const input = form.querySelector('[name="searchPhrase"]');
+                    const categorySelect = form.querySelector('[name="category"]');
                     const submitBtn = form.querySelector('.tracker-history-search__submit');
-                    if (!input || !submitBtn) return;
-                    submitBtn.disabled = !input.value.trim();
+                    if (!submitBtn) return;
+                    const hasSearch = Boolean((input?.value || '').trim());
+                    const hasCategory = Boolean((categorySelect?.value || '').trim());
+                    submitBtn.disabled = !hasSearch && !hasCategory;
                 }
 
                 function swapTransactionHistoryPanel(html) {
@@ -1120,15 +1314,21 @@ else
                     host.innerHTML = html;
                 }
 
-                async function loadPanel(searchPhrase) {
+                async function loadPanel(filters) {
                     if (searchInFlight) return;
-                    const trimmed = (searchPhrase || '').trim();
+
+                    const searchPhrase = (filters?.search ?? '').trim();
+                    const category = (filters?.category ?? '').trim();
+                    const hasFilters = Boolean(searchPhrase || category);
 
                     searchInFlight = true;
                     const url = new URL(searchUrl, window.location.origin);
                     appendTrackerPeriod(url);
-                    if (trimmed) {
-                        url.searchParams.set('search', trimmed);
+                    if (searchPhrase) {
+                        url.searchParams.set('search', searchPhrase);
+                    }
+                    if (category) {
+                        url.searchParams.set('category', category);
                     }
 
                     showSearchLoading();
@@ -1140,7 +1340,10 @@ else
 
                         swapTransactionHistoryPanel(await response.text());
 
-                        history.replaceState({ trackerSearch: trimmed }, '', buildTrackerIndexUrl(trimmed));
+                        history.replaceState(
+                            { trackerSearch: searchPhrase, trackerCategory: category },
+                            '',
+                            buildTrackerIndexUrl(searchPhrase, category));
 
                         await waitForPaint();
                     } finally {
@@ -1155,12 +1358,14 @@ else
                     if (!form || !host.contains(form)) return;
                     e.preventDefault();
                     const input = form.querySelector('[name="searchPhrase"]');
+                    const categorySelect = form.querySelector('[name="category"]');
                     const trimmed = (input?.value || '').trim();
-                    if (!trimmed) {
+                    const category = (categorySelect?.value || '').trim();
+                    if (!trimmed && !category) {
                         syncSearchSubmitState();
                         return;
                     }
-                    loadPanel(trimmed);
+                    loadPanel({ search: trimmed, category: category });
                 });
 
                 host.addEventListener('input', function (e) {
@@ -1169,15 +1374,35 @@ else
                 });
 
                 host.addEventListener('click', function (e) {
+                    const categoryOption = e.target.closest('[data-tracker-category-option]');
+                    if (categoryOption && host.contains(categoryOption)) {
+                        e.preventDefault();
+                        const form = categoryOption.closest('[data-tracker-search-form]');
+                        const input = form?.querySelector('[name="searchPhrase"]');
+                        const category = categoryOption.dataset.trackerCategoryOption || '';
+                        const toggle = form?.querySelector('[data-tracker-category-toggle]');
+                        if (toggle) {
+                            bootstrap.Dropdown.getOrCreateInstance(toggle)?.hide();
+                        }
+                        loadPanel({
+                            search: (input?.value || '').trim(),
+                            category: category
+                        });
+                        return;
+                    }
+
                     if (!e.target.closest('[data-tracker-search-clear]')) return;
                     e.preventDefault();
-                    loadPanel('');
+                    loadPanel({ search: '', category: '' });
                 });
 
                 window.addEventListener('popstate', function () {
                     if (!document.getElementById('transactionHistoryHost')) return;
                     const params = new URLSearchParams(window.location.search);
-                    loadPanel(params.get('search') || '');
+                    loadPanel({
+                        search: params.get('search') || '',
+                        category: params.get('category') || ''
+                    });
                 });
 
                 syncSearchSubmitState();
@@ -1190,8 +1415,10 @@ else
                 setupExpenseModalForm(addModal, addForm, {
                     onReset: function () {
                         resetExpenseForm(addModal, addForm, { clearAmount: true, resetSelect: true });
+                        setAddExpenseModalTitle('Add expense');
                     }
                 });
+                bindBusyForm(addForm);
             }
 
             function setupEditExpenseForm() {
@@ -1204,11 +1431,13 @@ else
                         refreshEditExpenseSnapshot(editForm);
                     }
                 });
+                bindBusyForm(editForm);
 
                 editForm.addEventListener('submit', function (e) {
                     if (!hasEditExpenseChanges(editForm)) {
                         e.preventDefault();
                         showEditNoChangesNotice();
+                        setButtonBusy(editForm.querySelector('[type="submit"]'), false);
                         return;
                     }
                     hideEditNoChangesNotice();
@@ -1268,6 +1497,25 @@ else
                 });
             }
 
+            function openCategoryBudgetsEditor() {
+                const panel = document.getElementById('categoryBudgetsPanel');
+                const btnEdit = document.getElementById('btnEditCategoryBudgets');
+                const view = document.getElementById('categoryBudgetsView');
+                const edit = document.getElementById('categoryBudgetsEdit');
+                if (!panel || !btnEdit || !view || !edit) return;
+
+                panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                window.setTimeout(function () {
+                    view.hidden = true;
+                    edit.hidden = false;
+                    btnEdit.hidden = true;
+                    validateCategoryBudgetForm();
+                    const firstInput = edit.querySelector('.category-budget-chip__input');
+                    firstInput?.focus({ preventScroll: true });
+                }, 380);
+            }
+
             setupEditPanel('btnEditProfile', 'btnCancelEdit', 'budgetProfileView', 'budgetProfileEdit');
             setupEditPanel('btnEditCategoryBudgets', 'btnCancelCategoryBudgets', 'categoryBudgetsView', 'categoryBudgetsEdit', resetCategoryFormFromView);
             setupCategoryBudgetValidation();
@@ -1280,18 +1528,15 @@ else
             setupDeleteExpenseForm();
             setupTrackerHistorySearch();
 
-            document.getElementById('btnSetCategoryBudgets')?.addEventListener('click', function () {
-                const panel = document.getElementById('categoryBudgetsPanel');
-                panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                setTimeout(function () {
-                    document.getElementById('btnEditCategoryBudgets')?.click();
-                }, 450);
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('[data-action="set-category-budgets"], #btnSetCategoryBudgets');
+                if (!btn) return;
+                e.preventDefault();
+                openCategoryBudgetsEditor();
             });
 
             if (openCategoryBudgetEdit) {
-                document.getElementById('categoryBudgetsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                document.getElementById('btnEditCategoryBudgets')?.click();
-                validateCategoryBudgetForm();
+                openCategoryBudgetsEditor();
             }
             // Open add expense modal if flag is set
             if (openAddExpenseModalFlag) {
