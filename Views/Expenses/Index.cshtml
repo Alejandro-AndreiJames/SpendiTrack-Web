@@ -452,6 +452,32 @@ else
 }
 </div>
 
+@if (Model.IsCurrentMonth)
+{
+    @if (Model.HasBudgetSetup)
+    {
+        <button type="button"
+                class="tracker-fab"
+                data-bs-toggle="modal"
+                data-bs-target="#addExpenseModal"
+                aria-label="Add expense"
+                title="Add expense">
+            <span class="tracker-fab__plus" aria-hidden="true">+</span>
+        </button>
+    }
+    else
+    {
+        <button type="button"
+                class="tracker-fab"
+                disabled
+                aria-disabled="true"
+                aria-label="Add expense"
+                title="Set up your monthly budget first">
+            <span class="tracker-fab__plus" aria-hidden="true">+</span>
+        </button>
+    }
+}
+
 <partial name="_AddExpenseModal" model="expenseForModal" />
 <partial name="_EditExpenseModal" model="editExpenseForModal" />
 <partial name="_ViewExpenseModal" model="Model.ViewExpense" />

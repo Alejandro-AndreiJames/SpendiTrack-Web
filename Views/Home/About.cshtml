@@ -2,46 +2,133 @@
     ViewData["Title"] = "About SpendiTrack";
 }
 
-<div class="page-header mb-4">
-    <h1>About SpendiTrack</h1>
-    <p class="text-muted small">Version 1.0.0 — Financial Clarity Made Simple</p>
-</div>
-
-<div class="form-panel about-panel p-4 p-md-5 rounded-3 mb-4">
-    <div class="mb-5">
-        <h3 class="about-section-title mb-3">Our Core Purpose</h3>
-        <p class="about-body fs-5">
-            SpendiTrack is an ASP.NET Core MVC web app for tracking personal expenses and estimating budgets.
-            By eliminating disorganized spreadsheets, it provides a centralized platform to visualize your spending habits,
-            set healthy savings goals, and understand exactly where your money goes.
+<div class="about-page">
+    <header class="about-hero page-header">
+        <p class="about-hero__eyebrow">About</p>
+        <h1>SpendiTrack</h1>
+        <p class="about-hero__lede">
+            A personal expense tracker and monthly budget workspace — built to replace messy spreadsheets
+            with a clear picture of income, limits, and where the money actually goes.
         </p>
-    </div>
+        <p class="about-hero__meta text-muted small mb-0">Version 1.0.0</p>
+    </header>
 
-    <div>
-        <h3 class="about-section-title mb-3">Architecture &amp; Core Security</h3>
-        <p class="about-body fs-5 mb-4">
-            Built with Entity Framework Core, SQL Server LocalDB, and ASP.NET Identity for secure sign-in when adding or editing records.
+    <section class="form-panel about-panel about-section">
+        <h2 class="about-section-title">Why it exists</h2>
+        <p class="about-body mb-0">
+            SpendiTrack helps you set a realistic monthly spending limit after savings and fixed costs,
+            assign money to categories, log expenses as you go, and see utilization before a category
+            quietly runs over. Everything stays tied to your account so your history stays private and month-aware.
+        </p>
+    </section>
+
+    <section class="form-panel about-panel about-section">
+        <h2 class="about-section-title">What you can do</h2>
+        <p class="about-body about-section__intro">
+            The tracker is organized around a single monthly view — plan the budget, track the spend, adjust as the month unfolds.
         </p>
 
-        <div class="row g-4 mt-2">
-            <div class="col-md-4">
-                <div class="about-feature-card">
-                    <h5 class="about-feature-card__title">🔐 Identity Guarding</h5>
-                    <p class="small mb-0">Protects your database logs by ensuring private tracker routes are completely inaccessible to unauthenticated visitors.</p>
-                </div>
+        <div class="row g-3 about-feature-grid">
+            <div class="col-md-6 col-xl-4">
+                <article class="about-feature-card">
+                    <span class="about-feature-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" />
+                            <path d="M16 2v4M8 2v4M3 10h18" />
+                        </svg>
+                    </span>
+                    <h3 class="about-feature-card__title">Monthly budget setup</h3>
+                    <p class="mb-0">Set income, savings goal, and fixed costs. SpendiTrack calculates your spending limit and breaks income into savings, bills, and available spend.</p>
+                </article>
             </div>
-            <div class="col-md-4">
-                <div class="about-feature-card">
-                    <h5 class="about-feature-card__title">💾 Data Persistence</h5>
-                    <p class="small mb-0">Uses Entity Framework Core paired with SQL Server LocalDB to store and query your transactional history rapidly.</p>
-                </div>
+            <div class="col-md-6 col-xl-4">
+                <article class="about-feature-card">
+                    <span class="about-feature-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3v18" />
+                            <path d="M5 8h7a3 3 0 0 1 0 6H8a3 3 0 0 0 0 6h11" />
+                        </svg>
+                    </span>
+                    <h3 class="about-feature-card__title">Category budgets</h3>
+                    <p class="mb-0">Allocate the spending limit across categories like Food, Transport, or Shopping, and keep unassigned amounts visible until you place them.</p>
+                </article>
             </div>
-            <div class="col-md-4">
-                <div class="about-feature-card">
-                    <h5 class="about-feature-card__title">⚡ Proactive Planning</h5>
-                    <p class="small mb-0">Instantly calculates expected daily or weekly spending limits right after subtracting your fixed monthly liabilities.</p>
-                </div>
+            <div class="col-md-6 col-xl-4">
+                <article class="about-feature-card">
+                    <span class="about-feature-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 8v8M8 12h8" />
+                        </svg>
+                    </span>
+                    <h3 class="about-feature-card__title">Expense tracking</h3>
+                    <p class="mb-0">Add, view, edit, and delete expenses with description, amount, date, and category — plus quick add from the floating button on mobile and desktop.</p>
+                </article>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <article class="about-feature-card">
+                    <span class="about-feature-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19V5" />
+                            <path d="M4 19h16" />
+                            <path d="M8 15v-4" />
+                            <path d="M12 15V8" />
+                            <path d="M16 15v-6" />
+                        </svg>
+                    </span>
+                    <h3 class="about-feature-card__title">Utilization &amp; alerts</h3>
+                    <p class="mb-0">Watch monthly progress against each category limit, with clear empty states and guidance when limits still need to be set.</p>
+                </article>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <article class="about-feature-card">
+                    <span class="about-feature-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="m20 20-3.5-3.5" />
+                            <path d="M8 11h6" />
+                        </svg>
+                    </span>
+                    <h3 class="about-feature-card__title">History &amp; export</h3>
+                    <p class="mb-0">Search transaction history, browse by month, and export the current month to CSV when you need a record outside the app.</p>
+                </article>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <article class="about-feature-card">
+                    <span class="about-feature-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3a5 5 0 0 0-5 5v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1V8a5 5 0 0 0-5-5Z" />
+                            <circle cx="12" cy="15" r="1.25" fill="currentColor" stroke="none" />
+                        </svg>
+                    </span>
+                    <h3 class="about-feature-card__title">Themes &amp; account</h3>
+                    <p class="mb-0">Choose a color theme per account, manage profile and email, change passwords, and optionally enable two-factor authentication.</p>
+                </article>
             </div>
         </div>
-    </div>
+    </section>
+
+    <section class="form-panel about-panel about-section">
+        <h2 class="about-section-title">Built with</h2>
+        <p class="about-body mb-3">
+            SpendiTrack is an ASP.NET Core MVC app using Entity Framework Core, SQL Server, and ASP.NET Identity —
+            with email confirmation and secure account flows so private tracker data stays behind a real sign-in.
+        </p>
+        <ul class="about-stack-list">
+            <li><strong>ASP.NET Core MVC</strong> — pages, forms, and tracker workflows</li>
+            <li><strong>Entity Framework Core</strong> — budgets, allocations, and expense history</li>
+            <li><strong>ASP.NET Identity</strong> — registration, sign-in, profile, and security</li>
+            <li><strong>Account email</strong> — confirmation and password reset over SMTP</li>
+        </ul>
+    </section>
+
+    <section class="form-panel about-panel about-section about-developer" aria-labelledby="about-developer-title">
+        <p class="about-developer__label">Developer</p>
+        <h2 class="about-section-title" id="about-developer-title">Andrei James S. Alejandro</h2>
+        <p class="about-body mb-0">
+            Andrei James S. Alejandro designed and built SpendiTrack as a practical personal finance tool —
+            focused on monthly planning, clear budgets, and a tracker that stays usable on both desktop and mobile.
+            The goal is simple: help people see their spending early enough to stay in control.
+        </p>
+    </section>
 </div>
