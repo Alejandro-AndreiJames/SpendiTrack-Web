@@ -41,18 +41,36 @@
             {
                 <span class="tracker-section-header__badge">@Model.TransactionCount</span>
             }
-            <a asp-action="ExportCsv"
-               asp-route-year="@Model.SelectedYear"
-               asp-route-month="@Model.SelectedMonth"
-               class="btn btn-outline-gold btn-sm tracker-export-btn"
-               title="Download @Model.SelectedMonthLabel as CSV">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span class="tracker-export-btn__text">Export Month (CSV)</span>
-            </a>
+            @if (Model.TransactionCount > 0)
+            {
+                <a asp-action="ExportCsv"
+                   asp-route-year="@Model.SelectedYear"
+                   asp-route-month="@Model.SelectedMonth"
+                   class="btn btn-outline-gold btn-sm tracker-export-btn"
+                   title="Download @Model.SelectedMonthLabel as CSV">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span class="tracker-export-btn__text">Export Month (CSV)</span>
+                </a>
+            }
+            else
+            {
+                <button type="button"
+                        class="btn btn-outline-gold btn-sm tracker-export-btn"
+                        disabled
+                        aria-disabled="true"
+                        title="No transactions to export yet">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span class="tracker-export-btn__text">Export Month (CSV)</span>
+                </button>
+            }
         </div>
     </div>
 
@@ -174,9 +192,22 @@
                 @if (Model.IsCurrentMonth)
                 {
                     <p class="mb-2">No transactions recorded yet.</p>
-                    <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                        Add your first expense
-                    </button>
+                    @if (Model.HasBudgetSetup)
+                    {
+                        <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                            Add your first expense
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="btn btn-gold btn-sm"
+                                disabled
+                                aria-disabled="true"
+                                title="Set up your monthly budget first">
+                            Add your first expense
+                        </button>
+                    }
                 }
                 else
                 {
