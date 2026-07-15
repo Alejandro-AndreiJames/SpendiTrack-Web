@@ -2849,6 +2849,18 @@ body.modal-open .tracker-fab {
 
 .home-feature-row.row {
   align-items: stretch;
+  margin-bottom: 1.75rem !important;
+}
+
+@media (min-width: 992px) {
+  .home-feature-row.row {
+    margin-bottom: 2.25rem !important;
+  }
+
+  .home-feature-row .calculator-panel,
+  .home-feature-row .home-how-it-works {
+    padding: 1.45rem 1.5rem;
+  }
 }
 
 .home-feature-row > [class*="col-"] {
