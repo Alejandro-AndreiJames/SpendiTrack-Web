@@ -67,6 +67,13 @@ _efbuild/
 # Local Identity email dumps (when SMTP is disabled)
 App_Data/emails/
 
+# Local publish output (upload to MonsterASP via FTP — do not commit)
+publish-out/
+publish-test/
+
+# Generated EF SQL script (regenerate: dotnet ef migrations script -o deploy-migrate.sql)
+deploy-migrate.sql
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 

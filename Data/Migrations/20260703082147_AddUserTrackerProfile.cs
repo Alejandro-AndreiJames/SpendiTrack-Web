@@ -23,6 +23,7 @@ namespace SpendiTrackWeb.Data.Migrations
                     table.PrimaryKey("PK_UserTrackerProfiles", x => x.UserId);
                 });
 
+            // Year/Month on UserBudgets are added in the next migration — use UpdatedAt here.
             migrationBuilder.Sql(@"
                 INSERT INTO UserTrackerProfiles (UserId, StartYear, StartMonth)
                 SELECT
@@ -32,8 +33,8 @@ namespace SpendiTrackWeb.Data.Migrations
                 FROM AspNetUsers u
                 CROSS APPLY (
                     SELECT COALESCE(
-                        (SELECT MIN(ub.Year * 100 + ub.Month) FROM UserBudgets ub WHERE ub.UserId = u.Id AND ub.MonthlyIncome > 0),
-                        (SELECT MIN(ub.Year * 100 + ub.Month) FROM UserBudgets ub WHERE ub.UserId = u.Id),
+                        (SELECT MIN(YEAR(ub.UpdatedAt) * 100 + MONTH(ub.UpdatedAt)) FROM UserBudgets ub WHERE ub.UserId = u.Id AND ub.MonthlyIncome > 0),
+                        (SELECT MIN(YEAR(ub.UpdatedAt) * 100 + MONTH(ub.UpdatedAt)) FROM UserBudgets ub WHERE ub.UserId = u.Id),
                         (SELECT MIN(YEAR(e.[Date]) * 100 + MONTH(e.[Date])) FROM Expense e WHERE e.UserId = u.Id),
                         YEAR(GETUTCDATE()) * 100 + MONTH(GETUTCDATE())
                     ) AS periodKey
